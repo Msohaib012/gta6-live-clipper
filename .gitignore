@@ -1,0 +1,17 @@
+# gta6-live-clipper — local-only ignores (the ZIP ships an explicit list;
+# this is for future local git use, not for packaging)
+__pycache__/
+*.pyc
+.venv*/
+clips/
+*.log
+/static/layout_previews/
+/static/previews/_work/
+test_*/
+test_run/
+work_*/
+rerender/
+speed-test/
+verify/
+*.mp4
+!static/previews/*.mp4

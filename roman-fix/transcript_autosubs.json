@@ -1,0 +1,797 @@
+{
+ "segments": [
+  {
+   "start": 0.0,
+   "end": 13.51,
+   "text": "1928 में भगत सिंह के साथ मिलकर एचआरए को हिंदुस्तान सोशलिस्ट रिपब्लिकन एसोसिएशन एचएसआरए बनाने में अहम भूमिका निभाई। भगत सिंह और आजाद के नेतृत्व में एचएसआरए ने अंग्रेजों के होश उड़ा दिए थे। लेकिन सालों की लुका छुपी के इस खेल में आखिरकार"
+  },
+  {
+   "start": 13.51,
+   "end": 27.43,
+   "text": "27 फरवरी 1931 को जब चंद्रशेखर आजाद अपने कॉमरेड से मिलने अल्फ्रेड पार्क गए हुए थे तभी ब्रिटिश पुलिस ने उन्हें चारों तरफ से घेर लिया। दोनों तरफ से फायरिंग होने लगी जिसमें चंद्रशेखर आजाद ने तीन पुलिस वालों"
+  },
+  {
+   "start": 27.43,
+   "end": 30.0,
+   "text": "को मौत की नींद सुला दिया। लेकिन जब उनकी बंदूक में आखिरी गोली बची थी तो उन्होंने पुलिस के हाथ लगने से पहले ही अपनी बंदूक की आखिरी गोली अपने शरीर में उतार ली और अपने नाम की तरह आजाद रहकर ही शहीद हो गए।"
+  }
+ ],
+ "words": [
+  {
+   "start": 0.0,
+   "end": 0.31,
+   "word": "1928",
+   "display": "1928"
+  },
+  {
+   "start": 0.31,
+   "end": 0.61,
+   "word": "में",
+   "display": "mein"
+  },
+  {
+   "start": 0.61,
+   "end": 0.92,
+   "word": "भगत",
+   "display": "bhagat"
+  },
+  {
+   "start": 0.92,
+   "end": 1.23,
+   "word": "सिंह",
+   "display": "singh"
+  },
+  {
+   "start": 1.23,
+   "end": 1.54,
+   "word": "के",
+   "display": "ke"
+  },
+  {
+   "start": 1.54,
+   "end": 1.84,
+   "word": "साथ",
+   "display": "sath"
+  },
+  {
+   "start": 1.84,
+   "end": 2.15,
+   "word": "मिलकर",
+   "display": "milakar"
+  },
+  {
+   "start": 2.15,
+   "end": 2.46,
+   "word": "एचआरए",
+   "display": "HRA"
+  },
+  {
+   "start": 2.46,
+   "end": 2.76,
+   "word": "को",
+   "display": "ko"
+  },
+  {
+   "start": 2.76,
+   "end": 3.07,
+   "word": "हिंदुस्तान",
+   "display": "hindustan"
+  },
+  {
+   "start": 3.07,
+   "end": 3.38,
+   "word": "सोशलिस्ट",
+   "display": "socialist"
+  },
+  {
+   "start": 3.38,
+   "end": 3.68,
+   "word": "रिपब्लिकन",
+   "display": "republican"
+  },
+  {
+   "start": 3.68,
+   "end": 3.99,
+   "word": "एसोसिएशन",
+   "display": "association"
+  },
+  {
+   "start": 3.99,
+   "end": 4.3,
+   "word": "एचएसआरए",
+   "display": "HSRA"
+  },
+  {
+   "start": 4.3,
+   "end": 4.61,
+   "word": "बनाने",
+   "display": "banane"
+  },
+  {
+   "start": 4.61,
+   "end": 4.91,
+   "word": "में",
+   "display": "mein"
+  },
+  {
+   "start": 4.91,
+   "end": 5.22,
+   "word": "अहम",
+   "display": "aham"
+  },
+  {
+   "start": 5.22,
+   "end": 5.53,
+   "word": "भूमिका",
+   "display": "bhumika"
+  },
+  {
+   "start": 5.53,
+   "end": 5.83,
+   "word": "निभाई।",
+   "display": "nibhai"
+  },
+  {
+   "start": 5.83,
+   "end": 6.14,
+   "word": "भगत",
+   "display": "bhagat"
+  },
+  {
+   "start": 6.14,
+   "end": 6.45,
+   "word": "सिंह",
+   "display": "singh"
+  },
+  {
+   "start": 6.45,
+   "end": 6.75,
+   "word": "और",
+   "display": "aur"
+  },
+  {
+   "start": 6.75,
+   "end": 7.06,
+   "word": "आजाद",
+   "display": "azad"
+  },
+  {
+   "start": 7.06,
+   "end": 7.37,
+   "word": "के",
+   "display": "ke"
+  },
+  {
+   "start": 7.37,
+   "end": 7.68,
+   "word": "नेतृत्व",
+   "display": "netritva"
+  },
+  {
+   "start": 7.68,
+   "end": 7.98,
+   "word": "में",
+   "display": "mein"
+  },
+  {
+   "start": 7.98,
+   "end": 8.29,
+   "word": "एचएसआरए",
+   "display": "HSRA"
+  },
+  {
+   "start": 8.29,
+   "end": 8.6,
+   "word": "ने",
+   "display": "ne"
+  },
+  {
+   "start": 8.6,
+   "end": 8.9,
+   "word": "अंग्रेजों",
+   "display": "angrejon"
+  },
+  {
+   "start": 8.9,
+   "end": 9.21,
+   "word": "के",
+   "display": "ke"
+  },
+  {
+   "start": 9.21,
+   "end": 9.52,
+   "word": "होश",
+   "display": "hosh"
+  },
+  {
+   "start": 9.52,
+   "end": 9.83,
+   "word": "उड़ा",
+   "display": "uda"
+  },
+  {
+   "start": 9.83,
+   "end": 10.13,
+   "word": "दिए",
+   "display": "diye"
+  },
+  {
+   "start": 10.13,
+   "end": 10.44,
+   "word": "थे।",
+   "display": "the"
+  },
+  {
+   "start": 10.44,
+   "end": 10.75,
+   "word": "लेकिन",
+   "display": "lekin"
+  },
+  {
+   "start": 10.75,
+   "end": 11.05,
+   "word": "सालों",
+   "display": "salon"
+  },
+  {
+   "start": 11.05,
+   "end": 11.36,
+   "word": "की",
+   "display": "ki"
+  },
+  {
+   "start": 11.36,
+   "end": 11.67,
+   "word": "लुका",
+   "display": "luka"
+  },
+  {
+   "start": 11.67,
+   "end": 11.97,
+   "word": "छुपी",
+   "display": "chhupi"
+  },
+  {
+   "start": 11.97,
+   "end": 12.28,
+   "word": "के",
+   "display": "ke"
+  },
+  {
+   "start": 12.28,
+   "end": 12.59,
+   "word": "इस",
+   "display": "is"
+  },
+  {
+   "start": 12.59,
+   "end": 12.9,
+   "word": "खेल",
+   "display": "khel"
+  },
+  {
+   "start": 12.9,
+   "end": 13.2,
+   "word": "में",
+   "display": "mein"
+  },
+  {
+   "start": 13.2,
+   "end": 13.51,
+   "word": "आखिरकार",
+   "display": "aakhirkar"
+  },
+  {
+   "start": 13.51,
+   "end": 13.87,
+   "word": "27",
+   "display": "27"
+  },
+  {
+   "start": 13.87,
+   "end": 14.22,
+   "word": "फरवरी",
+   "display": "farvari"
+  },
+  {
+   "start": 14.22,
+   "end": 14.58,
+   "word": "1931",
+   "display": "1931"
+  },
+  {
+   "start": 14.58,
+   "end": 14.94,
+   "word": "को",
+   "display": "ko"
+  },
+  {
+   "start": 14.94,
+   "end": 15.29,
+   "word": "जब",
+   "display": "jab"
+  },
+  {
+   "start": 15.29,
+   "end": 15.65,
+   "word": "चंद्रशेखर",
+   "display": "chandrashekhar"
+  },
+  {
+   "start": 15.65,
+   "end": 16.01,
+   "word": "आजाद",
+   "display": "azad"
+  },
+  {
+   "start": 16.01,
+   "end": 16.37,
+   "word": "अपने",
+   "display": "apne"
+  },
+  {
+   "start": 16.37,
+   "end": 16.72,
+   "word": "कॉमरेड",
+   "display": "comrade"
+  },
+  {
+   "start": 16.72,
+   "end": 17.08,
+   "word": "से",
+   "display": "se"
+  },
+  {
+   "start": 17.08,
+   "end": 17.44,
+   "word": "मिलने",
+   "display": "milne"
+  },
+  {
+   "start": 17.44,
+   "end": 17.79,
+   "word": "अल्फ्रेड",
+   "display": "alfred"
+  },
+  {
+   "start": 17.79,
+   "end": 18.15,
+   "word": "पार्क",
+   "display": "park"
+  },
+  {
+   "start": 18.15,
+   "end": 18.51,
+   "word": "गए",
+   "display": "gaye"
+  },
+  {
+   "start": 18.51,
+   "end": 18.86,
+   "word": "हुए",
+   "display": "hue"
+  },
+  {
+   "start": 18.86,
+   "end": 19.22,
+   "word": "थे",
+   "display": "the"
+  },
+  {
+   "start": 19.22,
+   "end": 19.58,
+   "word": "तभी",
+   "display": "tabhi"
+  },
+  {
+   "start": 19.58,
+   "end": 19.93,
+   "word": "ब्रिटिश",
+   "display": "british"
+  },
+  {
+   "start": 19.93,
+   "end": 20.29,
+   "word": "पुलिस",
+   "display": "police"
+  },
+  {
+   "start": 20.29,
+   "end": 20.65,
+   "word": "ने",
+   "display": "ne"
+  },
+  {
+   "start": 20.65,
+   "end": 21.01,
+   "word": "उन्हें",
+   "display": "unhein"
+  },
+  {
+   "start": 21.01,
+   "end": 21.36,
+   "word": "चारों",
+   "display": "charo"
+  },
+  {
+   "start": 21.36,
+   "end": 21.72,
+   "word": "तरफ",
+   "display": "taraf"
+  },
+  {
+   "start": 21.72,
+   "end": 22.08,
+   "word": "से",
+   "display": "se"
+  },
+  {
+   "start": 22.08,
+   "end": 22.43,
+   "word": "घेर",
+   "display": "gher"
+  },
+  {
+   "start": 22.43,
+   "end": 22.79,
+   "word": "लिया।",
+   "display": "liya"
+  },
+  {
+   "start": 22.79,
+   "end": 23.15,
+   "word": "दोनों",
+   "display": "dono"
+  },
+  {
+   "start": 23.15,
+   "end": 23.5,
+   "word": "तरफ",
+   "display": "taraf"
+  },
+  {
+   "start": 23.5,
+   "end": 23.86,
+   "word": "से",
+   "display": "se"
+  },
+  {
+   "start": 23.86,
+   "end": 24.22,
+   "word": "फायरिंग",
+   "display": "firing"
+  },
+  {
+   "start": 24.22,
+   "end": 24.57,
+   "word": "होने",
+   "display": "hone"
+  },
+  {
+   "start": 24.57,
+   "end": 24.93,
+   "word": "लगी",
+   "display": "lagi"
+  },
+  {
+   "start": 24.93,
+   "end": 25.29,
+   "word": "जिसमें",
+   "display": "jisamen"
+  },
+  {
+   "start": 25.29,
+   "end": 25.65,
+   "word": "चंद्रशेखर",
+   "display": "chandrashekhar"
+  },
+  {
+   "start": 25.65,
+   "end": 26.0,
+   "word": "आजाद",
+   "display": "azad"
+  },
+  {
+   "start": 26.0,
+   "end": 26.36,
+   "word": "ने",
+   "display": "ne"
+  },
+  {
+   "start": 26.36,
+   "end": 26.72,
+   "word": "तीन",
+   "display": "teen"
+  },
+  {
+   "start": 26.72,
+   "end": 27.07,
+   "word": "पुलिस",
+   "display": "police"
+  },
+  {
+   "start": 27.07,
+   "end": 27.43,
+   "word": "वालों",
+   "display": "walon"
+  },
+  {
+   "start": 27.43,
+   "end": 27.49,
+   "word": "को",
+   "display": "ko"
+  },
+  {
+   "start": 27.49,
+   "end": 27.54,
+   "word": "मौत",
+   "display": "maut"
+  },
+  {
+   "start": 27.54,
+   "end": 27.6,
+   "word": "की",
+   "display": "ki"
+  },
+  {
+   "start": 27.6,
+   "end": 27.66,
+   "word": "नींद",
+   "display": "neend"
+  },
+  {
+   "start": 27.66,
+   "end": 27.72,
+   "word": "सुला",
+   "display": "sula"
+  },
+  {
+   "start": 27.72,
+   "end": 27.77,
+   "word": "दिया।",
+   "display": "diya"
+  },
+  {
+   "start": 27.77,
+   "end": 27.83,
+   "word": "लेकिन",
+   "display": "lekin"
+  },
+  {
+   "start": 27.83,
+   "end": 27.89,
+   "word": "जब",
+   "display": "jab"
+  },
+  {
+   "start": 27.89,
+   "end": 27.94,
+   "word": "उनकी",
+   "display": "unki"
+  },
+  {
+   "start": 27.94,
+   "end": 28.0,
+   "word": "बंदूक",
+   "display": "banduk"
+  },
+  {
+   "start": 28.0,
+   "end": 28.06,
+   "word": "में",
+   "display": "mein"
+  },
+  {
+   "start": 28.06,
+   "end": 28.12,
+   "word": "आखिरी",
+   "display": "akhiri"
+  },
+  {
+   "start": 28.12,
+   "end": 28.17,
+   "word": "गोली",
+   "display": "goli"
+  },
+  {
+   "start": 28.17,
+   "end": 28.23,
+   "word": "बची",
+   "display": "bachi"
+  },
+  {
+   "start": 28.23,
+   "end": 28.29,
+   "word": "थी",
+   "display": "thi"
+  },
+  {
+   "start": 28.29,
+   "end": 28.34,
+   "word": "तो",
+   "display": "to"
+  },
+  {
+   "start": 28.34,
+   "end": 28.4,
+   "word": "उन्होंने",
+   "display": "unhonne"
+  },
+  {
+   "start": 28.4,
+   "end": 28.46,
+   "word": "पुलिस",
+   "display": "police"
+  },
+  {
+   "start": 28.46,
+   "end": 28.52,
+   "word": "के",
+   "display": "ke"
+  },
+  {
+   "start": 28.52,
+   "end": 28.57,
+   "word": "हाथ",
+   "display": "hath"
+  },
+  {
+   "start": 28.57,
+   "end": 28.63,
+   "word": "लगने",
+   "display": "lagane"
+  },
+  {
+   "start": 28.63,
+   "end": 28.69,
+   "word": "से",
+   "display": "se"
+  },
+  {
+   "start": 28.69,
+   "end": 28.74,
+   "word": "पहले",
+   "display": "pahale"
+  },
+  {
+   "start": 28.74,
+   "end": 28.8,
+   "word": "ही",
+   "display": "hi"
+  },
+  {
+   "start": 28.8,
+   "end": 28.86,
+   "word": "अपनी",
+   "display": "apani"
+  },
+  {
+   "start": 28.86,
+   "end": 28.91,
+   "word": "बंदूक",
+   "display": "banduk"
+  },
+  {
+   "start": 28.91,
+   "end": 28.97,
+   "word": "की",
+   "display": "ki"
+  },
+  {
+   "start": 28.97,
+   "end": 29.03,
+   "word": "आखिरी",
+   "display": "akhiri"
+  },
+  {
+   "start": 29.03,
+   "end": 29.09,
+   "word": "गोली",
+   "display": "goli"
+  },
+  {
+   "start": 29.09,
+   "end": 29.14,
+   "word": "अपने",
+   "display": "apne"
+  },
+  {
+   "start": 29.14,
+   "end": 29.2,
+   "word": "शरीर",
+   "display": "sharir"
+  },
+  {
+   "start": 29.2,
+   "end": 29.26,
+   "word": "में",
+   "display": "mein"
+  },
+  {
+   "start": 29.26,
+   "end": 29.31,
+   "word": "उतार",
+   "display": "utar"
+  },
+  {
+   "start": 29.31,
+   "end": 29.37,
+   "word": "ली",
+   "display": "li"
+  },
+  {
+   "start": 29.37,
+   "end": 29.43,
+   "word": "और",
+   "display": "aur"
+  },
+  {
+   "start": 29.43,
+   "end": 29.49,
+   "word": "अपने",
+   "display": "apne"
+  },
+  {
+   "start": 29.49,
+   "end": 29.54,
+   "word": "नाम",
+   "display": "nam"
+  },
+  {
+   "start": 29.54,
+   "end": 29.6,
+   "word": "की",
+   "display": "ki"
+  },
+  {
+   "start": 29.6,
+   "end": 29.66,
+   "word": "तरह",
+   "display": "tarah"
+  },
+  {
+   "start": 29.66,
+   "end": 29.71,
+   "word": "आजाद",
+   "display": "azad"
+  },
+  {
+   "start": 29.71,
+   "end": 29.77,
+   "word": "रहकर",
+   "display": "rahakar"
+  },
+  {
+   "start": 29.77,
+   "end": 29.83,
+   "word": "ही",
+   "display": "hi"
+  },
+  {
+   "start": 29.83,
+   "end": 29.89,
+   "word": "शहीद",
+   "display": "shahid"
+  },
+  {
+   "start": 29.89,
+   "end": 29.94,
+   "word": "हो",
+   "display": "ho"
+  },
+  {
+   "start": 29.94,
+   "end": 30.0,
+   "word": "गए।",
+   "display": "gaye"
+  }
+ ],
+ "duration": 30.0,
+ "detected_language": "hi",
+ "language_probability": 1.0,
+ "caption_script": "latin",
+ "translit_method": "local",
+ "transcription_model": "youtube-autosubs",
+ "language_forced": null,
+ "script_guard_retried": false
+}

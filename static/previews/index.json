@@ -1,0 +1,202 @@
+[
+ {
+  "name": "Glow Neon",
+  "desc": "Montserrat Black, active word cyan with neon glow. sohaib's pick \u2014 default.",
+  "source": "our V2 spike (2026-11-17)",
+  "anim": "static",
+  "id": "neon",
+  "preview": "/static/previews/neon.mp4"
+ },
+ {
+  "name": "Hormozi Pop",
+  "desc": "Anton ALL-CAPS, active word pops 80\u2192112\u2192100% and turns yellow.",
+  "source": "our V2 spike (2026-11-17)",
+  "anim": "pop",
+  "id": "hormozi",
+  "preview": "/static/previews/hormozi.mp4"
+ },
+ {
+  "name": "Hype",
+  "desc": "Anton ALL-CAPS, active word pops and turns RED \u2014 PeakCut's 'CHOPPER UH' look, sohaib's benchmark.",
+  "source": "PeakCut (haziqahmedqasmi/PeakCut)",
+  "anim": "pop",
+  "id": "hype",
+  "preview": "/static/previews/hype.mp4"
+ },
+ {
+  "name": "Karaoke Sweep",
+  "desc": "Montserrat ExtraBold, accent colour sweeps left-to-right through the active word.",
+  "source": "aman ClipKaro karaoke (\\kf sweep) + our V2 karaoke",
+  "anim": "anim",
+  "id": "karaoke",
+  "preview": "/static/previews/karaoke.mp4"
+ },
+ {
+  "name": "Pop",
+  "desc": "Per-word scale bounce 80\u2192112\u2192100%, white \u2014 the bounce without the colour pop.",
+  "source": "our V2 pop + autoclip pop",
+  "anim": "pop",
+  "id": "pop",
+  "preview": "/static/previews/pop.mp4"
+ },
+ {
+  "name": "Fade Up",
+  "desc": "Words fade in and slide up as they are spoken.",
+  "source": "our V2 fade",
+  "anim": "anim",
+  "id": "fade",
+  "preview": "/static/previews/fade.mp4"
+ },
+ {
+  "name": "Highlighter Box",
+  "desc": "Opaque yellow highlighter box behind the active word, black text.",
+  "source": "our V2 box",
+  "anim": "static",
+  "id": "box",
+  "preview": "/static/previews/box.mp4"
+ },
+ {
+  "name": "Pulse",
+  "desc": "Active word swells to 122% then settles \u2014 a heartbeat on every word.",
+  "source": "our V2 pulse",
+  "anim": "anim",
+  "id": "pulse",
+  "preview": "/static/previews/pulse.mp4"
+ },
+ {
+  "name": "Boxed",
+  "desc": "Opaque dark box behind the whole caption line, active word in blue.",
+  "source": "autoclip boxed",
+  "anim": "static",
+  "id": "boxed",
+  "preview": "/static/previews/boxed.mp4"
+ },
+ {
+  "name": "Cinematic",
+  "desc": "Smaller elegant lowercase text, faint glow, dark backing plate \u2014 for documentaries.",
+  "source": "autoclip cinematic",
+  "anim": "static",
+  "id": "cinematic",
+  "preview": "/static/previews/cinematic.mp4"
+ },
+ {
+  "name": "Classic",
+  "desc": "Simple clean white text, thin outline, no animation \u2014 interviews.",
+  "source": "autoclip classic",
+  "anim": "static",
+  "id": "classic",
+  "preview": "/static/previews/classic.mp4"
+ },
+ {
+  "name": "Minimal",
+  "desc": "Fade-in; hype keywords light up in yellow, the rest stays white.",
+  "source": "aman ClipKaro minimal",
+  "anim": "anim",
+  "id": "minimal",
+  "preview": "/static/previews/minimal.mp4"
+ },
+ {
+  "name": "Bold",
+  "desc": "Extra-large heavy text, thick outline \u2014 shouts the loudest moments.",
+  "source": "aman ClipKaro bold",
+  "anim": "static",
+  "id": "bold",
+  "preview": "/static/previews/bold.mp4"
+ },
+ {
+  "name": "Comic",
+  "desc": "Bangers comic font, playful tilt \u2014 fun moments, gaming bants.",
+  "source": "aman ClipKaro comic",
+  "anim": "static",
+  "id": "comic",
+  "preview": "/static/previews/comic.mp4"
+ },
+ {
+  "name": "Typewriter",
+  "desc": "Letters appear one by one as they are spoken.",
+  "source": "remotion-captioneer typewriter",
+  "anim": "anim",
+  "id": "typewriter",
+  "preview": "/static/previews/typewriter.mp4"
+ },
+ {
+  "name": "Pill",
+  "desc": "Active word inside a white pill, black text \u2014 clean and readable.",
+  "source": "remotion-captioneer pill",
+  "anim": "static",
+  "id": "pill",
+  "preview": "/static/previews/pill.mp4"
+ },
+ {
+  "name": "Bounce",
+  "desc": "Active word bounces with a spring and turns cyan \u2014 the Beasty/Mozi look.",
+  "source": "remotion-captioneer bounce",
+  "anim": "anim",
+  "id": "bounce",
+  "preview": "/static/previews/bounce.mp4"
+ },
+ {
+  "name": "Rawani",
+  "desc": "A glowing teal underline extends beneath the words as speech continues.",
+  "source": "FuseClip Rawani (underline-continuous)",
+  "anim": "anim",
+  "id": "rawani",
+  "preview": "/static/previews/rawani.mp4"
+ },
+ {
+  "name": "Lafz",
+  "desc": "One bold outlined word at a time, popping in as it is spoken.",
+  "source": "FuseClip Lafz (single-word)",
+  "anim": "anim",
+  "id": "lafz",
+  "preview": "/static/previews/lafz.mp4"
+ },
+ {
+  "name": "Aks",
+  "desc": "Oversized words; the spoken word is inverted \u2014 black text on a white box.",
+  "source": "FuseClip Aks",
+  "anim": "static",
+  "id": "aks",
+  "preview": "/static/previews/aks.mp4"
+ },
+ {
+  "name": "Lakeer",
+  "desc": "White text with a crisp blue underline on the active word only.",
+  "source": "FuseClip Lakeer (underline)",
+  "anim": "static",
+  "id": "lakeer",
+  "preview": "/static/previews/lakeer.mp4"
+ },
+ {
+  "name": "Ali Abdaal",
+  "desc": "White rounded card; gray words turn black as they are spoken.",
+  "source": "FuseClip Ali Abdaal (white-karaoke)",
+  "anim": "static",
+  "id": "ali",
+  "preview": "/static/previews/ali.mp4"
+ },
+ {
+  "name": "Shamani",
+  "desc": "Glowing yellow phrases, gentle floating wave, pop-and-fade entrance.",
+  "source": "FuseClip Shamani",
+  "anim": "anim",
+  "id": "shamani",
+  "preview": "/static/previews/shamani.mp4"
+ },
+ {
+  "name": "Saaf",
+  "desc": "Clean bold white; each spoken word slides up into place.",
+  "source": "FuseClip Saaf (bold)",
+  "anim": "anim",
+  "id": "saaf",
+  "preview": "/static/previews/saaf.mp4"
+ },
+ {
+  "name": "Lehar",
+  "desc": "A violet pill fills left-to-right as the words are spoken.",
+  "source": "FuseClip Lehar (filled-tube)",
+  "anim": "static",
+  "id": "lehar",
+  "preview": "/static/previews/lehar.mp4"
+ }
+]

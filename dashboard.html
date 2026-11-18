@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTA 6 Live Clipper</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e10600'/%3E%3Cpath d='M26 18v28l22-14z' fill='white'/%3E%3C/svg%3E">
+<style>
+  /* GTA 6 Live Clipper — professional dark UI (Muse redesign, 2026-11-18).
+     Design language: YT Clip Tool v1.2.0 premium dark system (CSS vars,
+     panels, radii, shadows) + PeakCut red accent + self-hosted Anton for
+     display type. Element ids and /api/* paths are the contract with
+     dashboard.py — do not rename them. */
+  @font-face {
+    font-family: "Anton";
+    src: url("/static/fonts/Anton-Regular.ttf") format("truetype");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  :root {
+    --bg: #07070a;
+    --bg-glow: rgba(225, 6, 0, .08);
+    --panel: #0d0d11;
+    --panel-2: #131318;
+    --panel-3: #1a1a21;
+    --line: rgba(255, 255, 255, .07);
+    --line-2: rgba(255, 255, 255, .13);
+    --text: #ececf1;
+    --muted: #9b9ba7;
+    --faint: #62626e;
+    --accent: #ff2d2d;
+    --accent-strong: #e10600;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(255, 45, 45, .12);
+    --accent-line: rgba(255, 45, 45, .45);
+    --gold: #f59e0b;
+    --ok: #5ee0a0;
+    --danger: #ff7a88;
+    --warn: #ffc56b;
+    --shadow: 0 24px 60px -20px rgba(0, 0, 0, .7);
+    --r-lg: 20px; --r-md: 14px; --r-sm: 10px;
+    --ease: cubic-bezier(.22, 1, .36, 1);
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --display: "Anton", "Arial Narrow", "Inter", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: var(--font); font-size: 14px; line-height: 1.55;
+    background: radial-gradient(900px 420px at 50% -120px, var(--bg-glow), transparent 70%), var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { background: var(--panel-3); padding: 1px 6px; border-radius: 6px; font-size: 12.5px; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(7, 7, 10, .82);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-in {
+    max-width: 1120px; margin: 0 auto; padding: 12px 20px;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; flex: none; }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 11px; flex: none;
+    background: linear-gradient(135deg, #ff3b3b, var(--accent-strong));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 22px -6px rgba(225, 6, 0, .55);
+  }
+  .brand-mark svg { width: 18px; height: 18px; fill: #fff; margin-left: 2px; }
+  .brand-name { font-family: var(--display); font-size: 19px; letter-spacing: .05em; line-height: 1; text-transform: uppercase; }
+  .brand-name em { font-style: normal; color: var(--accent); }
+  .brand-tag { font-size: 10.5px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; margin-top: 3px; }
+  .nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a {
+    color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap;
+    padding: 7px 11px; border-radius: 8px;
+  }
+  .nav a:hover { color: var(--text); background: var(--panel-2); text-decoration: none; }
+
+  .app { max-width: 1120px; margin: 0 auto; padding: 0 20px 48px; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 30px 0 8px; }
+  .hero h1 {
+    font-family: var(--display); font-weight: 400; text-transform: uppercase;
+    font-size: clamp(30px, 5.4vw, 48px); line-height: 1.04; letter-spacing: .02em;
+    margin: 0 0 10px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero .sub { color: var(--muted); font-size: 14.5px; max-width: 720px; margin: 0; }
+  .hero .sub b { color: var(--text); }
+
+  /* ---------- how it works ---------- */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 22px 0 6px; }
+  .step {
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 16px; font-size: 13.5px; color: var(--muted);
+  }
+  .step b { color: var(--text); }
+  .step .step-kicker {
+    font-family: var(--display); font-size: 13px; letter-spacing: .12em;
+    color: var(--accent); text-transform: uppercase; display: block; margin-bottom: 7px;
+  }
+
+  /* ---------- sections ---------- */
+  section { scroll-margin-top: 76px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin: 34px 0 4px; }
+  .sec-num {
+    font-family: var(--display); font-size: 26px; line-height: 1;
+    color: var(--accent); flex: none;
+  }
+  .sec-head h2 {
+    font-family: var(--display); font-weight: 400; font-size: 21px;
+    letter-spacing: .05em; text-transform: uppercase; margin: 0;
+  }
+  .sec-sub { color: var(--muted); font-size: 13.5px; margin: 2px 0 14px; max-width: 760px; }
+  .sec-sub b { color: var(--text); }
+
+  /* ---------- cards / forms ---------- */
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 18px; margin: 12px 0;
+    box-shadow: var(--shadow);
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field > span { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .field label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  input, select, textarea {
+    background: var(--bg); color: var(--text); border: 1px solid var(--line-2);
+    border-radius: var(--r-sm); padding: 9px 11px; font-size: 14px; font-family: var(--font);
+    outline: none; transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+  input[type=text], textarea { flex: 1; min-width: 220px; }
+  input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent-strong); padding: 0; }
+  .check { flex-direction: row !important; align-items: center; gap: 8px; text-transform: none !important; letter-spacing: 0 !important; font-size: 13.5px !important; font-weight: 600 !important; color: var(--text) !important; }
+  button {
+    background: linear-gradient(180deg, #ff3b3b, var(--accent-strong));
+    color: var(--accent-ink); border: none; border-radius: var(--r-sm);
+    padding: 10px 16px; font-size: 14px; font-weight: 700; font-family: var(--font);
+    cursor: pointer; transition: transform .12s var(--ease), filter .15s var(--ease), opacity .15s;
+    box-shadow: 0 10px 24px -10px rgba(225, 6, 0, .6);
+  }
+  button:hover { filter: brightness(1.08); }
+  button:active { transform: translateY(1px); }
+  button.secondary {
+    background: var(--panel-3); color: var(--text);
+    border: 1px solid var(--line-2); box-shadow: none;
+  }
+  button.secondary:hover { background: #22222b; }
+  button.danger { background: linear-gradient(180deg, #3a0d12, #2a0a0e); border: 1px solid rgba(255, 122, 136, .35); color: var(--danger); box-shadow: none; }
+  button.star {
+    background: transparent; border: 1px solid var(--line-2); color: var(--muted);
+    padding: 6px 11px; box-shadow: none; font-weight: 600;
+  }
+  button.star.on { background: var(--gold); color: #111; border-color: var(--gold); }
+  button:disabled { opacity: .45; cursor: default; filter: none; transform: none; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--panel-2); border: 1px solid var(--line-2);
+    border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; margin: 2px;
+  }
+  .pill.live { background: rgba(94, 224, 160, .12); border-color: rgba(94, 224, 160, .45); color: var(--ok); }
+  .pill.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(94, 224, 160, .5); } 70% { box-shadow: 0 0 0 6px rgba(94, 224, 160, 0); } 100% { box-shadow: 0 0 0 0 rgba(94, 224, 160, 0); } }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .style-card {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 10px; transition: transform .15s var(--ease), border-color .15s var(--ease), box-shadow .15s var(--ease);
+    cursor: default;
+  }
+  .style-card:hover { transform: translateY(-2px); border-color: var(--line-2); box-shadow: var(--shadow); }
+  .style-card video, .style-card img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; background: #000; display: block; }
+  .style-card .name { font-weight: 700; margin: 8px 0 2px; font-size: 13.5px; }
+  .style-card .desc { font-size: 12px; color: var(--muted); min-height: 32px; }
+  .style-card .src { font-size: 11px; color: var(--faint); }
+  .style-card .row { margin-top: 8px; }
+
+  .clip {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 0; border-bottom: 1px solid var(--line);
+  }
+  .clip:last-child { border-bottom: none; }
+  .clip video, .clip img { width: 96px; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; background: #000; flex: none; }
+  .clip .meta { font-size: 12px; color: var(--muted); }
+  .clip b { font-size: 13.5px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .ok { color: var(--ok); font-weight: 600; } .bad { color: var(--danger); font-weight: 600; } .muted { color: var(--muted); }
+  .warn {
+    background: rgba(255, 197, 107, .09); border: 1px solid rgba(255, 197, 107, .35);
+    color: #ffe1a8; border-radius: var(--r-md); padding: 12px 14px; font-size: 13px; margin-bottom: 14px;
+  }
+  .okbox {
+    background: rgba(94, 224, 160, .09); border: 1px solid rgba(94, 224, 160, .35);
+    color: #c9f5dd; border-radius: var(--r-md); padding: 12px 14px; font-size: 13px; margin-bottom: 14px;
+  }
+  #events { font-size: 12.5px; color: var(--muted); max-height: 180px; overflow: auto; line-height: 1.7; }
+  #events div { border-bottom: 1px solid var(--line); padding: 3px 0; }
+  #events div:last-child { border-bottom: none; }
+  .pos-h { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); margin-right: 6px; vertical-align: middle; }
+  .status-dot.on { background: var(--ok); animation: pulse 1.6s infinite; }
+  .foot { text-align: center; color: var(--faint); font-size: 12px; margin-top: 36px; }
+  .layout-img { width: 360px; max-width: 100%; border-radius: var(--r-md); display: block; border: 1px solid var(--line); }
+
+  @media (max-width: 640px) {
+    .topbar-in { padding: 10px 14px; gap: 10px; }
+    .brand-tag { display: none; }
+    .app { padding: 0 14px 40px; }
+    .hero { padding: 22px 0 4px; }
+    .steps { grid-template-columns: 1fr; }
+    .card { padding: 14px; border-radius: var(--r-md); }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .clip video, .clip img { width: 76px; }
+    input[type=text] { min-width: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <div class="brand-mark"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+      <div>
+        <div class="brand-name">GTA 6 <em>Live Clipper</em></div>
+        <div class="brand-tag">Watch &middot; Catch &middot; Clip</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="#sec-streams">Streams</a>
+      <a href="#sec-watch">Watch</a>
+      <a href="#sec-styles">Styles</a>
+      <a href="#sec-positions">Positions</a>
+      <a href="#sec-vod">VOD</a>
+      <a href="#sec-gallery">Gallery</a>
+      <a href="#sec-settings">Settings</a>
+    </nav>
+  </div>
+</header>
+
+<div class="app">
+
+  <div class="hero">
+    <h1>Catch every moment.<br><span>Clip it first.</span></h1>
+    <p class="sub">Watches live streams 24/7, catches the best moments, and turns them into vertical Shorts — before the streamer uploads their own video. Runs on your PC, in this browser tab.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step"><span class="step-kicker">1 &middot; Start</span>Add streams below (search YouTube live, or paste a link) &rarr; language is auto-detected (Roman Urdu/Hindi captions by default) &rarr; pick styles on the Styles page &rarr; star your <b>favorites in order</b> &rarr; press <b>Start</b>.</div>
+    <div class="step"><span class="step-kicker">2 &middot; Middle (automatic)</span>The watch loop tracks speech + live chat + loudness, finds the best moment, and renders a vertical Short with the <b>next favorite style</b> (clip 1 &rarr; favorite 1, clip 2 &rarr; favorite 2, cycling). No key needed; a free Gemini key (Settings) makes the picking smarter.</div>
+    <div class="step"><span class="step-kicker">3 &middot; End</span>Clips land in the <b>Gallery</b> below — watch them and press <b>Download</b>, or let the auto-post queue post them to YouTube. Your style selection reaches the tool <b>only through this Styles page</b> — no chat round-trip per clip.</div>
+  </div>
+
+  <section id="sec-streams">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Find streams</h2></div>
+    <div class="card">
+      <div class="row">
+        <input type="text" id="search-q" placeholder="Search YouTube live — e.g. GTA 6 gameplay, GTA V RP…">
+        <button id="search-btn">Search live</button>
+      </div>
+      <div id="search-results" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <input type="text" id="paste-url" placeholder="Paste a live link — YouTube / Twitch / Kick / any yt-dlp live URL">
+        <button id="resolve-btn">Check &amp; add</button>
+      </div>
+      <div id="resolve-msg" class="muted" style="margin-top:6px"></div>
+      <div id="watch-list" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <section id="sec-watch">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Watch setup</h2></div>
+    <p class="sec-sub">One setup for every stream on the watch list. Start once — the loop does the rest.</p>
+    <div class="card">
+      <div class="row">
+        <label>Style
+          <select id="style">
+            <option value="auto">★ Favorites rotation (auto)</option>
+          </select>
+        </label>
+        <label>Mode
+          <select id="mode">
+            <option value="game">Game (centre crop)</option>
+            <option value="gameplay">Gameplay (game + facecam corner)</option>
+            <option value="facecam">Facecam (follow speaker)</option>
+            <option value="doc">Documentary (static per shot)</option>
+          </select>
+        </label>
+        <label>Language
+          <select id="language">
+            <option value="auto">Auto-detect</option>
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="ur">Urdu</option>
+          </select>
+        </label>
+        <label>Captions
+          <select id="caption-mode">
+            <option value="auto">Auto (Roman for Urdu/Hindi)</option>
+            <option value="hi">Hindi (Devanagari)</option>
+            <option value="hi-roman">Hindi (Roman)</option>
+            <option value="ur">Urdu (Nastaliq)</option>
+            <option value="ur-roman">Urdu (Roman)</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <label>Resolution
+          <select id="res">
+            <option value="720">720×1280 (fast)</option>
+            <option value="1080">1080×1920 (quality)</option>
+          </select>
+        </label>
+        <label>Ratio
+          <select id="ratio">
+            <option value="9:16">9:16 vertical (Shorts)</option>
+            <option value="1:1">1:1 square</option>
+            <option value="4:5">4:5 portrait</option>
+            <option value="16:9">16:9 landscape</option>
+          </select>
+        </label>
+        <label>Facecam
+          <select id="facecam-pos">
+            <option value="auto">Auto (per stream)</option>
+            <option value="top-right">Top-right corner</option>
+            <option value="top-left">Top-left corner</option>
+            <option value="mid-right">Mid-right</option>
+            <option value="mid-left">Mid-left</option>
+            <option value="top-band">Top band (full width)</option>
+            <option value="off">Off (no facecam)</option>
+          </select>
+        </label>
+        <label>Captions at
+          <select id="caption-pos">
+            <option value="auto">Auto (first free line)</option>
+            <option value="bottom">Bottom band (y~950–1000)</option>
+            <option value="seam">Seam (below facecam band)</option>
+            <option value="top">Top</option>
+          </select>
+        </label>
+        <label>Segment (min) <input type="number" id="segment-minutes" value="3" min="1" max="10" style="width:60px"></label>
+        <label>Trigger (dB) <input type="number" id="threshold-db" value="-28" step="1" style="width:60px"></label>
+        <label class="check"><input type="checkbox" id="post"> Auto-post to YouTube</label>
+      </div>
+      <p class="sec-sub" style="margin-top:10px">★ <b>Roman captions are ON by default</b> for Hindi/Urdu speech — captions come out in Latin letters, never Devanagari or Nastaliq. Change “Captions” above only if you want native script.</p>
+      <div class="row" style="margin-top:14px">
+        <button id="start-btn">▶ Start watching</button>
+        <button id="stop-btn" class="danger">■ Stop</button>
+        <button id="clip-now-btn" class="secondary">✂ Clip now (next segment)</button>
+        <button id="mark-btn" class="secondary">◎ Mark moment (clip this NOW)</button>
+        <span id="watch-status" class="muted"></span>
+      </div>
+      <div id="watch-table" style="margin-top:10px"></div>
+    </div>
+
+    <div id="ytbanner"></div>
+  </section>
+
+  <section id="sec-styles">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Caption styles — pick your favorites</h2></div>
+    <p class="sec-sub">Every style has a real animated preview (rendered by the tool from a real GTA V frame). Star styles to mark them as <b>favorites</b> — the auto-clip loop rotates through your favorites in the order shown (▲▼ to reorder). Next up: <b id="next-fav">—</b></p>
+    <div class="card">
+      <div class="row" style="margin-bottom:12px">
+        <button id="save-favs-btn">Save favorites</button>
+        <button id="rebuild-previews-btn" class="secondary">Rebuild previews</button>
+        <span id="favs-msg" class="muted"></span>
+      </div>
+      <div id="styles-grid" class="grid"></div>
+    </div>
+  </section>
+
+  <section id="sec-positions">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Positions — facecam, captions, ratios</h2></div>
+    <p class="sec-sub">Every position has a real preview (drawn on a real GTA frame with a real facecam). Click one to pick it — the next clips use your pick. <b>Auto</b> means the tool checks each stream's own frames and picks the freest spot.</p>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <button id="save-positions-btn">Save positions</button>
+        <span id="positions-msg" class="muted"></span>
+      </div>
+      <div class="pos-h">Facecam position</div>
+      <div id="facecam-grid" class="grid"></div>
+      <div class="pos-h">Caption position</div>
+      <div id="caption-grid" class="grid"></div>
+      <div class="pos-h">Output ratio</div>
+      <div id="ratio-row" class="row"></div>
+      <div class="pos-h">Per-stream layout preview</div>
+      <p class="sec-sub">See the full layout for one stream/video before clips are made — facecam box, caption band, crop boundaries and safe zones drawn on <b>that stream's own frames</b>.</p>
+      <div class="row">
+        <input type="text" id="layout-source" placeholder="Video file path or channel URL (uses its latest capture)">
+        <button id="layout-preview-btn" class="secondary">Preview layout</button>
+      </div>
+      <div id="layout-preview-out" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <section id="sec-vod">
+    <div class="sec-head"><span class="sec-num">05</span><h2>VOD — make Shorts from an uploaded video</h2></div>
+    <p class="sec-sub">Paste any already-uploaded video URL (YouTube etc.) or a local file path. The tool transcribes it, picks the best moments, and renders vertical Shorts into the gallery. <b>Shorts-making only — not a clip downloader.</b></p>
+    <div class="card">
+      <div class="row">
+        <input type="text" id="vod-source" placeholder="Video URL or local file path, e.g. C:\Videos\stream.mp4">
+        <label>Clips <input type="number" id="vod-count" value="3" min="1" max="10" style="width:50px"></label>
+        <label>Length (s) <input type="number" id="vod-len" value="40" min="15" max="60" style="width:55px"></label>
+        <label>Manual window <input type="text" id="vod-manual" placeholder="optional: start-end, e.g. 120-160" style="min-width:140px"></label>
+        <button id="vod-btn">Make Shorts</button>
+      </div>
+      <div id="vod-jobs" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <section id="sec-gallery">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Gallery</h2></div>
+    <div class="card" id="gallery"><span class="muted">No clips yet — start the watch or make a VOD Short.</span></div>
+  </section>
+
+  <section id="sec-queue">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Auto-post queue</h2></div>
+    <div class="card">
+      <div id="queue"><span class="muted">Queue is empty.</span></div>
+      <div class="muted" style="margin-top:8px">Instagram / TikTok auto-post is v2 — they need app approvals. YouTube is the v1 lane.</div>
+    </div>
+  </section>
+
+  <section id="sec-settings">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Settings</h2></div>
+    <div class="card">
+      <div class="row">
+        <input type="password" id="gemini-key" placeholder="Optional free Gemini API key (smarter picking + transliteration fallback)">
+        <button id="gemini-save-btn" class="secondary">Save key</button>
+        <span id="gemini-status" class="muted"></span>
+      </div>
+      <p class="sec-sub" style="margin-top:10px">The key is stored in <code>config.json</code> on your PC and is never shown back or sent anywhere except Google's API. Without it, everything still works — picking uses loudness + chat + speech (no AI).</p>
+      <p class="sec-sub">YouTube live chat is NOT tracked (needs a Google API key — loudness + transcript still work). Twitch chat is tracked: unique chatters per minute, bot storms don't count.</p>
+    </div>
+  </section>
+
+  <section id="sec-activity">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Activity</h2></div>
+    <div class="card"><div id="events"></div></div>
+  </section>
+
+  <div class="foot">GTA 6 Live Clipper &middot; runs on your PC &middot; 127.0.0.1:5000</div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const api = (p, opts) => fetch(p, opts).then(r => r.json());
+
+let stylesData = [];
+let favOrder = [];
+
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function refreshStatus(){
+  const s = await api('/api/status');
+  $('watch-status').textContent = s.running
+    ? '● WATCHING since ' + (s.started_at || '') + ' — ' + s.channels.length + ' channel(s)'
+    : '○ not running';
+  $('start-btn').disabled = s.running;
+  $('stop-btn').disabled = !s.running;
+  $('clip-now-btn').disabled = !s.running;
+  $('gemini-status').textContent = s.gemini_configured ? '✓ Gemini key saved' : 'No Gemini key (optional)';
+  $('next-fav').textContent = s.next_favorite.total
+    ? s.next_favorite.style + ' (' + s.next_favorite.position + '/' + s.next_favorite.total + ')'
+    : '— (no favorites yet)';
+  const ytb = $('ytbanner');
+  if (s.youtube === 'ready') ytb.innerHTML = '<div class="okbox">YouTube connected — the queue will auto-post.</div>';
+  else if (s.youtube === 'needs_auth') ytb.innerHTML = '<div class="warn">YouTube: client_secrets.json found, but not authorised yet — run <b>python post_queue.py --auth</b> once (opens a browser). Clips will wait in the queue until then.</div>';
+  else ytb.innerHTML = '<div class="warn">YouTube not connected — clips will be saved + queued, but not posted. One-time setup: Google Cloud Console → YouTube Data API v3 → OAuth client → client_secrets.json in this folder → <b>python post_queue.py --auth</b>. See README.</div>';
+  // watch table
+  if (s.channels.length){
+    $('watch-table').innerHTML = '<table><tr><th>Channel</th><th>Live</th><th>Segments</th><th>Clips</th><th>Chat (unique/min)</th><th>Last clip</th></tr>' +
+      s.channels.map(c => '<tr><td>' + esc(c.channel) + '</td><td>' + (c.live === true ? '<span class="ok">● LIVE</span>' : c.live === false ? '<span class="bad">offline</span>' : '…') + '</td><td>' + (c.segments||0) + '</td><td>' + (c.clips||0) + '</td><td>' + (c.chat_unique ?? '—') + '</td><td>' + esc(c.last_clip || '—') + '</td></tr>').join('') + '</table>';
+  } else { $('watch-table').innerHTML = ''; }
+  // gallery
+  if (s.clips.length){
+    $('gallery').innerHTML = s.clips.map(c =>
+      '<div class="clip"><video src="/clips/' + encodeURIComponent(c.name) + '" controls muted loop preload="metadata"></video>' +
+      '<div><b>' + esc(c.name) + '</b> <span class="meta">(' + c.size_mb + ' MB · ' + esc(c.created) + ')</span>' +
+      (c.review === 'approved' ? ' <span class="pill live">✓ Approved</span>' : c.review === 'rejected' ? ' <span class="pill" style="background:#4c0519;border-color:#f87171">✕ Rejected</span>' : '') + '<br>' +
+      '<span class="meta">style: <b>' + esc(c.style || '—') + '</b> · ' + esc(c.kind || 'live') + ' · trigger: ' + esc(c.trigger || '—') + ' · ' + esc(c.channel || '') + '<br>' + esc((c.signals||[]).join(' · ')) + '</span><br>' +
+      '<a href="/clips/' + encodeURIComponent(c.name) + '" download><button class="secondary">Download</button></a> ' +
+      '<button class="secondary" data-review="approved" data-clip="' + esc(c.name) + '">✓ Approve</button> ' +
+      '<button class="secondary" data-review="rejected" data-clip="' + esc(c.name) + '">✕ Reject</button></div></div>').join('');
+    document.querySelectorAll('[data-review]').forEach(b => b.onclick = async () => {
+      await api('/api/gallery/' + encodeURIComponent(b.dataset.clip) + '/review', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: b.dataset.review})});
+      refreshStatus();
+    });
+  }
+  // queue
+  if (s.queue && s.queue.length){
+    $('queue').innerHTML = '<table><tr><th>Title</th><th>Status</th><th>Link</th></tr>' +
+      s.queue.map(q => '<tr><td>' + esc(q.title || q.clip || '') + '</td><td>' + esc(q.status || '') + (q.error ? ' — ' + esc(q.error) : '') + '</td><td>' + (q.youtube_id ? '<a href="https://youtu.be/' + q.youtube_id + '" target="_blank">youtu.be/' + q.youtube_id + '</a>' : '—') + '</td></tr>').join('') + '</table>';
+  }
+  // events
+  $('events').innerHTML = (s.events || []).map(e => '<div>' + esc(e.t) + ' — ' + esc(e.msg) + '</div>').join('');
+  // vod jobs
+  if (s.vod_jobs && s.vod_jobs.length){
+    $('vod-jobs').innerHTML = s.vod_jobs.map(j => '<div>' + esc(j.id) + ' · ' + esc(j.source.slice(0, 70)) + ' · <b>' + esc(j.status) + '</b>' + (j.clips && j.clips.length ? ' — ' + j.clips.map(esc).join(', ') : '') + (j.error ? ' — <span class="bad">' + esc(j.error) + '</span>' : '') + '</div>').join('');
+  }
+}
+
+async function refreshStyles(){
+  const d = await api('/api/styles');
+  stylesData = d.styles; favOrder = d.favorites.slice();
+  const sel = $('style');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="auto">★ Favorites rotation (auto)</option>' +
+    stylesData.map(s => '<option value="' + s.id + '">' + esc(s.name) + '</option>').join('');
+  sel.value = cur || 'auto';
+  $('styles-grid').innerHTML = stylesData.map(s =>
+    '<div class="style-card" data-id="' + s.id + '">' +
+    (s.preview_exists ? '<video src="' + s.preview + '" autoplay muted loop playsinline></video>' : '<div class="muted" style="height:90px;display:flex;align-items:center;justify-content:center">preview missing</div>') +
+    '<div class="name">' + esc(s.name) + (s.fav_order ? ' <span class="pill">★ ' + s.fav_order + '</span>' : '') + '</div>' +
+    '<div class="desc">' + esc(s.desc) + '</div><div class="src">' + esc(s.source) + '</div>' +
+    '<div class="row" style="margin-top:6px"><button class="star' + (s.favorite ? ' on' : '') + '" data-fav="' + s.id + '">' + (s.favorite ? '★ Favorite' : '☆ Favorite') + '</button>' +
+    (s.favorite ? '<button class="secondary" data-up="' + s.id + '">▲</button><button class="secondary" data-down="' + s.id + '">▼</button>' : '') +
+    '</div></div>').join('');
+  document.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => toggleFav(b.dataset.fav));
+  document.querySelectorAll('[data-up]').forEach(b => b.onclick = () => moveFav(b.dataset.up, -1));
+  document.querySelectorAll('[data-down]').forEach(b => b.onclick = () => moveFav(b.dataset.down, 1));
+}
+
+function toggleFav(id){
+  const i = favOrder.indexOf(id);
+  if (i >= 0) favOrder.splice(i, 1); else favOrder.push(id);
+  refreshStyles();
+}
+function moveFav(id, d){
+  const i = favOrder.indexOf(id);
+  const j = i + d;
+  if (i < 0 || j < 0 || j >= favOrder.length) return;
+  [favOrder[i], favOrder[j]] = [favOrder[j], favOrder[i]];
+  refreshStyles();
+}
+
+let posPick = {facecam_pos: 'auto', caption_pos: 'auto', ratio: '9:16'};
+
+async function refreshPositions(){
+  const d = await api('/api/positions');
+  if (!d.ok) return;
+  posPick = Object.assign({facecam_pos: 'auto', caption_pos: 'auto', ratio: '9:16'}, d.current);
+  $('facecam-pos').value = posPick.facecam_pos;
+  $('caption-pos').value = posPick.caption_pos;
+  $('ratio').value = posPick.ratio;
+  $('facecam-grid').innerHTML = d.facecam.map(f =>
+    '<div class="style-card" data-pos="facecam" data-id="' + f.id + '" style="' + (posPick.facecam_pos === f.id ? 'border-color:#ff2d2d' : '') + '">' +
+    (f.preview_exists ? '<img src="' + f.preview + '" style="width:100%;border-radius:6px;display:block">' : '<div class="muted">preview missing</div>') +
+    '<div class="name">' + esc(f.name) + '</div><div class="desc">' + esc(f.desc) + '</div></div>').join('');
+  $('caption-grid').innerHTML = d.captions.map(f =>
+    '<div class="style-card" data-pos="caption" data-id="' + f.id + '" style="' + (posPick.caption_pos === f.id ? 'border-color:#ff2d2d' : '') + '">' +
+    (f.preview_exists ? '<img src="' + f.preview + '" style="width:100%;border-radius:6px;display:block">' : '<div class="muted">preview missing</div>') +
+    '<div class="name">' + esc(f.name) + '</div><div class="desc">' + esc(f.desc) + '</div></div>').join('');
+  $('ratio-row').innerHTML = d.ratios.map(r =>
+    '<button class="' + (posPick.ratio === r.id ? '' : 'secondary') + '" data-ratio="' + r.id + '">' + esc(r.name) + '</button>').join('') +
+    '<span class="muted">' + esc((d.ratios.find(r => r.id === posPick.ratio) || {}).desc || '') + '</span>';
+  document.querySelectorAll('[data-pos]').forEach(el => el.onclick = () => {
+    if (el.dataset.pos === 'facecam') posPick.facecam_pos = el.dataset.id;
+    else posPick.caption_pos = el.dataset.id;
+    refreshPositions();
+  });
+  document.querySelectorAll('[data-ratio]').forEach(b => b.onclick = () => { posPick.ratio = b.dataset.ratio; refreshPositions(); });
+}
+
+async function refreshChannels(){
+  const d = await api('/api/channels');
+  $('watch-list').innerHTML = d.channels.length
+    ? d.channels.map(u => '<span class="pill">' + esc(u) + ' <a href="#" data-remove="' + esc(u) + '" style="color:#f87171">✕</a></span>').join(' ')
+    : '<span class="muted">Watch list is empty — search or paste a link to add streams.</span>';
+  document.querySelectorAll('[data-remove]').forEach(a => a.onclick = async e => {
+    e.preventDefault();
+    await api('/api/channels', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'remove', url: a.dataset.remove})});
+    refreshChannels();
+  });
+}
+
+$('search-btn').onclick = async () => {
+  const q = $('search-q').value.trim();
+  if (!q) return;
+  $('search-results').innerHTML = '<span class="muted">Searching live streams…</span>';
+  const d = await api('/api/search?q=' + encodeURIComponent(q));
+  if (!d.ok){ $('search-results').innerHTML = '<span class="bad">' + esc(d.error || 'search failed') + '</span>'; return; }
+  if (!d.results.length){ $('search-results').innerHTML = '<span class="muted">No live streams found for that search right now.</span>'; return; }
+  $('search-results').innerHTML = d.results.map(r =>
+    '<div class="clip">' + (r.thumbnail ? '<img src="' + esc(r.thumbnail) + '" style="width:96px;border-radius:6px">' : '') +
+    '<div><b>' + esc(r.title) + '</b><br><span class="meta">' + esc(r.channel || '') + ' · ' + esc(r.platform || '') + ' · ' + esc(r.viewers ?? '') + ' viewers · ' + (r.live ? '<span class="ok">● LIVE</span>' : '') + '</span><br>' +
+    '<button class="secondary" data-add="' + esc(r.url) + '">+ Add to watch list</button></div></div>').join('');
+  document.querySelectorAll('[data-add]').forEach(b => b.onclick = async () => {
+    await api('/api/channels', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'add', url: b.dataset.add})});
+    refreshChannels();
+  });
+};
+
+$('resolve-btn').onclick = async () => {
+  const url = $('paste-url').value.trim();
+  if (!url) return;
+  $('resolve-msg').textContent = 'Checking…';
+  const d = await api('/api/resolve', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url})});
+  if (!d.ok){ $('resolve-msg').innerHTML = '<span class="bad">' + esc(d.error || 'not a live stream') + '</span>'; return; }
+  if (d.live){
+    await api('/api/channels', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'add', url: d.url})});
+    $('resolve-msg').innerHTML = '<span class="ok">✓ Live — added: ' + esc(d.title || d.url) + ' (' + esc(d.platform || '') + ')</span>';
+    $('paste-url').value = '';
+    refreshChannels();
+  } else {
+    $('resolve-msg').innerHTML = '<span class="bad">Not live right now (' + esc(d.title || d.url) + '). It stays off the list until it goes live.</span>';
+  }
+};
+
+$('start-btn').onclick = async () => {
+  const chs = await api('/api/channels');
+  const body = {channels: chs.channels, style: $('style').value, mode: $('mode').value,
+    language: $('language').value, caption_mode: $('caption-mode').value,
+    res: parseInt($('res').value), ratio: $('ratio').value,
+    facecam_pos: $('facecam-pos').value, caption_pos: $('caption-pos').value,
+    segment_minutes: parseInt($('segment-minutes').value),
+    threshold_db: parseFloat($('threshold-db').value), post: $('post').checked};
+  const d = await api('/api/start', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!d.ok) alert(d.error || 'could not start');
+  refreshStatus();
+};
+$('stop-btn').onclick = async () => { await api('/api/stop', {method: 'POST'}); refreshStatus(); };
+$('clip-now-btn').onclick = async () => {
+  const style = $('style').value !== 'auto' ? $('style').value : '';
+  await api('/api/clip-now', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({style})});
+  refreshStatus();
+};
+$('mark-btn').onclick = async () => {
+  const d = await api('/api/mark', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({})});
+  if (d.ok) alert('Marked at ' + d.mark.at + ' — the watch loop will clip a Short around this moment.');
+  refreshStatus();
+};
+$('save-positions-btn').onclick = async () => {
+  await api('/api/positions', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(posPick)});
+  $('positions-msg').textContent = 'Saved — facecam: ' + posPick.facecam_pos + ' · captions: ' + posPick.caption_pos + ' · ratio: ' + posPick.ratio;
+  refreshPositions();
+};
+$('layout-preview-btn').onclick = async () => {
+  const src = $('layout-source').value.trim();
+  if (!src) return;
+  $('layout-preview-out').innerHTML = '<span class="muted">Checking this stream’s frames…</span>';
+  const d = await api('/api/layout_preview', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({source: src})});
+  if (!d.ok){ $('layout-preview-out').innerHTML = '<span class="bad">' + esc(d.error || 'preview failed') + '</span>'; return; }
+  $('layout-preview-out').innerHTML = '<img src="' + d.preview + '" style="width:360px;border-radius:8px;display:block">' +
+    '<div class="muted" style="margin-top:6px">facecam: <b>' + esc(d.corner || '—') + '</b> · caption y: ' + esc(d.caption_y ?? '—') + ' · detection: ' + esc(d.detection || '—') + (d.note ? ' · ' + esc(d.note) : '') + '</div>';
+};
+$('save-favs-btn').onclick = async () => {
+  await api('/api/favorites', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({favorites: favOrder})});
+  $('favs-msg').textContent = 'Saved — the auto-clip loop now rotates through ' + favOrder.length + ' favorite(s).';
+  refreshStyles(); refreshStatus();
+};
+$('rebuild-previews-btn').onclick = async () => {
+  await api('/api/previews/rebuild', {method: 'POST'});
+  $('favs-msg').textContent = 'Rebuilding previews in the background…';
+};
+$('vod-btn').onclick = async () => {
+  const body = {source: $('vod-source').value.trim(), count: parseInt($('vod-count').value),
+    clip_len: parseFloat($('vod-len').value), mode: $('mode').value,
+    res: parseInt($('res').value), ratio: $('ratio').value,
+    facecam_pos: $('facecam-pos').value, caption_pos: $('caption-pos').value,
+    language: $('language').value,
+    caption_mode: $('caption-mode').value, style: $('style').value !== 'auto' ? $('style').value : null,
+    manual: $('vod-manual').value.trim() || null};
+  const d = await api('/api/vod', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  if (!d.ok) alert(d.error || 'could not start VOD job');
+  refreshStatus();
+};
+$('gemini-save-btn').onclick = async () => {
+  const key = $('gemini-key').value.trim();
+  await api('/api/settings/gemini', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({key})});
+  $('gemini-key').value = '';
+  refreshStatus();
+};
+
+refreshChannels(); refreshStyles(); refreshPositions(); refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>

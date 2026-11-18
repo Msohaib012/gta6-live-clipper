@@ -1,0 +1,70 @@
+name: Build Windows .exe
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-facecam.txt pyinstaller
+
+      - name: Download ffmpeg + ffprobe (Windows)
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_dl
+          Get-ChildItem ffmpeg_dl -Recurse -Filter ffmpeg.exe | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName -Destination .\ffmpeg.exe }
+          Get-ChildItem ffmpeg_dl -Recurse -Filter ffprobe.exe | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName -Destination .\ffprobe.exe }
+          .\ffmpeg.exe -version
+          .\ffprobe.exe -version
+
+      - name: Build .exe with PyInstaller (onedir — settings/clips live next to the exe)
+        run: |
+          pyinstaller --onedir --clean --noconfirm --name GTA6-Live-Clipper --console --add-data "dashboard.html;." --add-data "settings.json;." --add-data "channels.json;." --add-data "fonts;fonts" --add-data "static;static" --add-data "models;models" --add-data "assets;assets" --add-binary "ffmpeg.exe;." --add-binary "ffprobe.exe;." --collect-all yt_dlp --collect-all faster_whisper --collect-all ctranslate2 --collect-all av --collect-all mediapipe --collect-all cv2 dashboard.py
+          dir dist\GTA6-Live-Clipper
+
+      - name: Make portable ZIP (.exe folder + ffmpeg + ffprobe)
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path portable\GTA6-Live-Clipper | Out-Null
+          Copy-Item dist\GTA6-Live-Clipper\* -Destination portable\GTA6-Live-Clipper\ -Recurse -Force
+          Compress-Archive -Path portable\GTA6-Live-Clipper -DestinationPath GTA6-Live-Clipper-Portable.zip -Force
+          Get-ChildItem GTA6-Live-Clipper-Portable.zip | Select-Object Name, Length
+
+      - name: Upload portable ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GTA6-Live-Clipper-Portable
+          path: GTA6-Live-Clipper-Portable.zip
+
+      - name: Publish GitHub Release (v1.0.0)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: GTA 6 Live Clipper v1.0.0 (Windows)
+          body: |
+            Portable Windows build — double-click GTA6-Live-Clipper.exe, no Python install needed.
+            **Download: GTA6-Live-Clipper-Portable.zip** — extract it anywhere and run GTA6-Live-Clipper.exe (ffmpeg + ffprobe are included next to it).
+            The dashboard opens at http://127.0.0.1:5000 automatically.
+            Add live streams (YouTube search or paste a link), pick caption styles, star favorites in order, press Start — clips land in the Gallery as vertical Shorts.
+            Hindi/Urdu speech is captioned in Roman script by default.
+            First run downloads the Whisper speech model (~150 MB) — needs internet once.
+          files: |
+            GTA6-Live-Clipper-Portable.zip

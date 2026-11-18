@@ -1,0 +1,13 @@
+# GTA 6 Live Clipper — core dependencies (Windows + Linux)
+# Install:  python -m pip install -r requirements.txt
+# ffmpeg must be installed separately and on PATH
+# (Windows: winget install Gyan.FFmpeg)
+yt-dlp>=2024.1
+faster-whisper>=1.0
+Pillow>=10
+indic-transliteration>=2.3  # Devanagari -> Roman (local, no key)
+numpy>=1.26
+scipy>=1.11
+Flask>=3
+google-api-python-client>=2.0
+google-auth-oauthlib>=1.2

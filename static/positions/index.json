@@ -1,0 +1,143 @@
+{
+ "positions": {
+  "facecam-top-right": "/home/hatch/workspace/gta6-live-clipper/static/positions/facecam-top-right.jpg",
+  "facecam-top-left": "/home/hatch/workspace/gta6-live-clipper/static/positions/facecam-top-left.jpg",
+  "facecam-mid-right": "/home/hatch/workspace/gta6-live-clipper/static/positions/facecam-mid-right.jpg",
+  "facecam-mid-left": "/home/hatch/workspace/gta6-live-clipper/static/positions/facecam-mid-left.jpg",
+  "facecam-top-band": "/home/hatch/workspace/gta6-live-clipper/static/positions/facecam-top-band.jpg",
+  "facecam-off": "/home/hatch/workspace/gta6-live-clipper/static/positions/facecam-off.jpg",
+  "caption-bottom": "/home/hatch/workspace/gta6-live-clipper/static/positions/caption-bottom.jpg",
+  "caption-seam": "/home/hatch/workspace/gta6-live-clipper/static/positions/caption-seam.jpg",
+  "caption-top": "/home/hatch/workspace/gta6-live-clipper/static/positions/caption-top.jpg",
+  "combined-auto": "/home/hatch/workspace/gta6-live-clipper/static/positions/combined-auto.jpg"
+ },
+ "facecam": {
+  "auto": {
+   "name": "Auto (per stream)",
+   "desc": "The tool checks this stream's own frames and picks the freest corner \u2014 avoids the HUD and the streamer's own facecam. Default.",
+   "rect": null
+  },
+  "top-right": {
+   "name": "Top-right corner",
+   "desc": "PeakCut-like corner \u2014 the streamer's face, bigger than PeakCut (40% of width).",
+   "rect": [
+    416,
+    16,
+    288,
+    162
+   ]
+  },
+  "top-left": {
+   "name": "Top-left corner",
+   "desc": "Mirror of top-right \u2014 for streams whose top-right has a HUD or logo.",
+   "rect": [
+    16,
+    16,
+    288,
+    162
+   ]
+  },
+  "mid-right": {
+   "name": "Mid-right",
+   "desc": "Right side, vertically centred \u2014 below the top HUD, above the caption band.",
+   "rect": [
+    416,
+    420,
+    288,
+    162
+   ]
+  },
+  "mid-left": {
+   "name": "Mid-left",
+   "desc": "Left side, vertically centred \u2014 same as mid-right, other side.",
+   "rect": [
+    16,
+    420,
+    288,
+    162
+   ]
+  },
+  "top-band": {
+   "name": "Top band (full width)",
+   "desc": "Clipie-style: the facecam stretches across the whole top ~33% as a band, gameplay fills below it.",
+   "rect": "band"
+  },
+  "off": {
+   "name": "Off (no facecam)",
+   "desc": "No facecam overlay at all \u2014 just the game, full frame.",
+   "rect": null
+  }
+ },
+ "captions": {
+  "auto": {
+   "name": "Auto (first free line)",
+   "desc": "The tool checks the facecam + HUD and picks the first free line: bottom, then higher. Default.",
+   "y": null
+  },
+  "bottom": {
+   "name": "Bottom band (y~950-1000)",
+   "desc": "Text at y~950-1000 \u2014 below the action centre, above the platforms' own UI. sohaib's verdict, the default.",
+   "y": 850
+  },
+  "seam": {
+   "name": "Seam (below the facecam band)",
+   "desc": "Text just below the top-band facecam (Clipie-style seam). Best with the top-band facecam.",
+   "y": 430
+  },
+  "top": {
+   "name": "Top",
+   "desc": "Text at the very top of the frame \u2014 for when the bottom is busy (HUD, subtitles in the game).",
+   "y": 16
+  }
+ },
+ "ratios": {
+  "9:16": {
+   "name": "9:16 vertical",
+   "desc": "Shorts / Reels / TikTok. Default.",
+   "size_720": [
+    720,
+    1280
+   ],
+   "size_1080": [
+    1080,
+    1920
+   ]
+  },
+  "1:1": {
+   "name": "1:1 square",
+   "desc": "Square feeds (Instagram grid, X).",
+   "size_720": [
+    720,
+    720
+   ],
+   "size_1080": [
+    1080,
+    1080
+   ]
+  },
+  "4:5": {
+   "name": "4:5 portrait",
+   "desc": "Portrait feeds (Instagram, Facebook).",
+   "size_720": [
+    720,
+    900
+   ],
+   "size_1080": [
+    1080,
+    1350
+   ]
+  },
+  "16:9": {
+   "name": "16:9 landscape",
+   "desc": "Landscape (YouTube, X, Facebook).",
+   "size_720": [
+    1280,
+    720
+   ],
+   "size_1080": [
+    1920,
+    1080
+   ]
+  }
+ }
+}
