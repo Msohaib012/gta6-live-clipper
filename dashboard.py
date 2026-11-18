@@ -604,6 +604,9 @@ def create_app(out_dir="clips"):
 
 
 def main():
+    # Frozen exe: put the bundle dir (ffmpeg/ffprobe/yt-dlp.exe) on PATH
+    from ytdlp_cmd import ensure_frozen_binaries_on_path
+    ensure_frozen_binaries_on_path()
     ap = argparse.ArgumentParser(description="GTA 6 Live Clipper dashboard (localhost).")
     ap.add_argument("--out", default="clips", help="output dir for finished Shorts")
     ap.add_argument("--port", type=int, default=5000)

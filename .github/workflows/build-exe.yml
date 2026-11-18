@@ -48,12 +48,28 @@ jobs:
           .\ffmpeg.exe -version
           .\ffprobe.exe -version
 
+      - name: Download yt-dlp.exe (standalone, official release)
+        shell: powershell
+        run: |
+          $ok = $false
+          for ($i = 1; $i -le 3 -and -not $ok; $i++) {
+            try {
+              Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile yt-dlp.exe -ErrorAction Stop
+              $ok = $true
+            } catch {
+              Write-Host "yt-dlp download attempt $i failed: $($_.Exception.Message)"
+              Start-Sleep -Seconds 20
+            }
+          }
+          if (-not $ok) { throw "yt-dlp.exe download failed after 3 attempts" }
+          .\yt-dlp.exe --version
+
       - name: Build .exe with PyInstaller (onedir - settings/clips live next to the exe)
         run: |
-          pyinstaller --onedir --clean --noconfirm --name GTA6-Live-Clipper --console --add-data "dashboard.html;." --add-data "settings.json;." --add-data "channels.json;." --add-data "fonts;fonts" --add-data "static;static" --add-data "models;models" --add-data "assets;assets" --add-binary "ffmpeg.exe;." --add-binary "ffprobe.exe;." --collect-all yt_dlp --collect-all faster_whisper --collect-all ctranslate2 --collect-all av --collect-all mediapipe --collect-all cv2 dashboard.py
+          pyinstaller --onedir --clean --noconfirm --name GTA6-Live-Clipper --console --add-data "dashboard.html;." --add-data "settings.json;." --add-data "channels.json;." --add-data "fonts;fonts" --add-data "static;static" --add-data "models;models" --add-data "assets;assets" --add-binary "ffmpeg.exe;." --add-binary "ffprobe.exe;." --add-binary "yt-dlp.exe;." --collect-all yt_dlp --collect-all faster_whisper --collect-all ctranslate2 --collect-all av --collect-all mediapipe --collect-all cv2 dashboard.py
           dir dist\GTA6-Live-Clipper
 
-      - name: Make portable ZIP (.exe folder + ffmpeg + ffprobe)
+      - name: Make portable ZIP (.exe folder + ffmpeg + ffprobe + yt-dlp)
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path portable\GTA6-Live-Clipper | Out-Null
@@ -67,17 +83,18 @@ jobs:
           name: GTA6-Live-Clipper-Portable
           path: GTA6-Live-Clipper-Portable.zip
 
-      - name: Publish GitHub Release (v1.0.0)
+      - name: Publish GitHub Release (v1.0.1)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: GTA 6 Live Clipper v1.0.0 (Windows)
+          tag_name: v1.0.1
+          name: GTA 6 Live Clipper v1.0.1 (Windows)
           body: |
             Portable Windows build - double-click GTA6-Live-Clipper.exe, no Python install needed.
-            **Download: GTA6-Live-Clipper-Portable.zip** - extract it anywhere and run GTA6-Live-Clipper.exe (ffmpeg + ffprobe are included next to it).
+            **Download: GTA6-Live-Clipper-Portable.zip** - extract it anywhere and run GTA6-Live-Clipper.exe (ffmpeg + ffprobe + yt-dlp are bundled inside).
             The dashboard opens at http://127.0.0.1:5000 automatically.
             Add live streams (YouTube search or paste a link), pick caption styles, star favorites in order, press Start - clips land in the Gallery as vertical Shorts.
             Hindi/Urdu speech is captioned in Roman script by default.
-            First run downloads the Whisper speech model (~150 MB) - needs internet once.
+            First run downloads the Whisper speech model - tiny (~75 MB) for English, small (~466 MB) for Hindi/Urdu Roman captions - needs internet once.
+            v1.0.1 fixes the frozen-exe binary paths (ffmpeg/ffprobe/yt-dlp now resolve inside the bundle).
           files: |
             GTA6-Live-Clipper-Portable.zip

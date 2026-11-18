@@ -15,7 +15,9 @@ import json
 import subprocess
 import sys
 
-YDLP = [sys.executable, "-m", "yt_dlp", "--no-check-certificates"]
+from ytdlp_cmd import ytdlp_cmd
+
+YDLP = ytdlp_cmd()
 
 
 def detect_site(url):

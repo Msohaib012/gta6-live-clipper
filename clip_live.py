@@ -694,6 +694,9 @@ def load_channels(path):
 
 
 def main():
+    # Frozen exe: put the bundle dir (ffmpeg/ffprobe/yt-dlp.exe) on PATH
+    from ytdlp_cmd import ensure_frozen_binaries_on_path
+    ensure_frozen_binaries_on_path()
     ap = argparse.ArgumentParser(description="GTA 6 Live Clipper — clip live Twitch streams into Shorts, 24/7.")
     ap.add_argument("channel", nargs="?", help="Twitch channel URL, e.g. https://www.twitch.tv/deansocool")
     ap.add_argument("--channels", default=None, help="channels.json file with a channel list")

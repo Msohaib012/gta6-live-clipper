@@ -23,6 +23,8 @@ import sys
 import threading
 import time
 
+from ytdlp_cmd import ytdlp_cmd
+
 FORMAT = "1080p60__source_"
 
 
@@ -30,8 +32,7 @@ def is_live(channel_url, timeout=45):
     """True if the channel is live right now (1080p60 source format exists)."""
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "yt_dlp", "--no-check-certificates",
-             "-f", FORMAT, "--no-download", channel_url],
+            ytdlp_cmd() + ["-f", FORMAT, "--no-download", channel_url],
             capture_output=True, text=True, timeout=timeout)
         return r.returncode == 0
     except Exception:
@@ -71,8 +72,7 @@ def capture_segment(channel_url, out_path, seconds, log_path=None):
     for p in (out_path, part_path):
         if os.path.exists(p):
             os.remove(p)
-    cmd = [sys.executable, "-m", "yt_dlp", "--no-check-certificates",
-           "-f", FORMAT, "-o", out_path, channel_url]
+    cmd = ytdlp_cmd() + ["-f", FORMAT, "-o", out_path, channel_url]
     logf = open(log_path, "w") if log_path else subprocess.DEVNULL
     print(f"[capture] recording {seconds}s -> {out_path}", flush=True)
     t0 = time.time()

@@ -31,6 +31,7 @@ sys.path.insert(0, BASE)
 from transcribe import pick_moment, transcribe_segment  # noqa: E402
 from render_short import render_short  # noqa: E402
 from settings import next_favorite_style  # noqa: E402
+from ytdlp_cmd import ytdlp_cmd  # noqa: E402
 
 HYPE_WORDS = {
     "go", "go go", "lets go", "let's go", "insane", "no way", "wow",
@@ -76,8 +77,7 @@ def fetch_autosubs(url, work_dir, lang_hint=None):
     else:
         langs = ["hi.*", "ur.*", "en.*"]
     out_tmpl = os.path.join(work_dir, "subs.%(ext)s")
-    cmd = [sys.executable, "-m", "yt_dlp", "--no-check-certificates",
-           "--write-auto-subs", "--write-subs",
+    cmd = ytdlp_cmd() + ["--write-auto-subs", "--write-subs",
            "--sub-lang", ",".join(langs), "--sub-format", "vtt",
            "--skip-download", "-o", out_tmpl, url]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -168,8 +168,7 @@ def download_video(url, work_dir, timeout=1800):
     """Download an uploaded video for Shorts-making (best 1080p, else best).
     Returns the local file path. The caller DELETES it after rendering."""
     out_tmpl = os.path.join(work_dir, "vod_source.%(ext)s")
-    cmd = [sys.executable, "-m", "yt_dlp", "--no-check-certificates",
-           "-f", "bv*[height<=1080]+ba/b[height<=1080]/b",
+    cmd = ytdlp_cmd() + ["-f", "bv*[height<=1080]+ba/b[height<=1080]/b",
            "-o", out_tmpl, "--no-playlist", url]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     if r.returncode != 0:
