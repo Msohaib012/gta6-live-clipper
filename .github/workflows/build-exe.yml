@@ -83,11 +83,11 @@ jobs:
           name: GTA6-Live-Clipper-Portable
           path: GTA6-Live-Clipper-Portable.zip
 
-      - name: Publish GitHub Release (v1.0.1)
+      - name: Publish GitHub Release (v1.0.2)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.1
-          name: GTA 6 Live Clipper v1.0.1 (Windows)
+          tag_name: v1.0.2
+          name: GTA 6 Live Clipper v1.0.2 (Windows)
           body: |
             Portable Windows build - double-click GTA6-Live-Clipper.exe, no Python install needed.
             **Download: GTA6-Live-Clipper-Portable.zip** - extract it anywhere and run GTA6-Live-Clipper.exe (ffmpeg + ffprobe + yt-dlp are bundled inside).
@@ -95,6 +95,6 @@ jobs:
             Add live streams (YouTube search or paste a link), pick caption styles, star favorites in order, press Start - clips land in the Gallery as vertical Shorts.
             Hindi/Urdu speech is captioned in Roman script by default.
             First run downloads the Whisper speech model - tiny (~75 MB) for English, small (~466 MB) for Hindi/Urdu Roman captions - needs internet once.
-            v1.0.1 fixes the frozen-exe binary paths (ffmpeg/ffprobe/yt-dlp now resolve inside the bundle).
+            v1.0.2 fixes YouTube live capture (site-aware yt-dlp format selector + metadata-based is_live — v1.0.1 broke ALL YouTube streams with a Twitch-only format id) and the frozen-exe binary paths (ffmpeg/ffprobe/yt-dlp now resolve inside the bundle).
           files: |
             GTA6-Live-Clipper-Portable.zip

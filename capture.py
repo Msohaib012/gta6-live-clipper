@@ -25,18 +25,54 @@ import time
 
 from ytdlp_cmd import ytdlp_cmd
 
-FORMAT = "1080p60__source_"
+FORMAT = "1080p60__source_"  # Twitch source quality (kept as default alias)
+
+# Site-aware format selectors (fix 2026-11-18: the Twitch-only
+# "1080p60__source_" id does not exist on YouTube, so is_live() and
+# capture_segment() failed every YouTube live stream with
+# "Requested format is not available").
+TWITCH_FORMAT = "1080p60__source_"
+GENERIC_FORMAT = "bestvideo[height<=1080][fps<=60]+bestaudio/best[height<=1080]/best"
+
+
+def format_for(channel_url):
+    """yt-dlp -f selector for this site: Twitch keeps its source format,
+    everything else (YouTube / Kick / generic) uses best <=1080p."""
+    if "twitch.tv" in (channel_url or ""):
+        return TWITCH_FORMAT
+    return GENERIC_FORMAT
 
 
 def is_live(channel_url, timeout=45):
-    """True if the channel is live right now (1080p60 source format exists)."""
-    try:
-        r = subprocess.run(
-            ytdlp_cmd() + ["-f", FORMAT, "--no-download", channel_url],
-            capture_output=True, text=True, timeout=timeout)
-        return r.returncode == 0
-    except Exception:
-        return False
+    """True if the channel is live right now.
+
+    Twitch: the source format id exists only while live, so the format
+    probe is the liveness check. YouTube/generic: the format exists for
+    ANY video (live or not), so the format probe is meaningless there —
+    use the metadata is_live field instead. The metadata probe hits
+    YouTube's bot check intermittently on this VM, so retry it up to
+    3 times; True if any attempt says live.
+    """
+    url = channel_url or ""
+    if "twitch.tv" in url:
+        try:
+            r = subprocess.run(
+                ytdlp_cmd() + ["-f", TWITCH_FORMAT, "--no-download", url],
+                capture_output=True, text=True, timeout=timeout)
+            return r.returncode == 0
+        except Exception:
+            return False
+    for _ in range(3):
+        try:
+            r = subprocess.run(
+                ytdlp_cmd() + ["--no-download", "--print", "%(is_live)s", url],
+                capture_output=True, text=True, timeout=timeout)
+            if r.returncode == 0 and r.stdout.strip().lower() == "true":
+                return True
+        except Exception:
+            pass
+        time.sleep(3)
+    return False
 
 
 def _kill_tree(proc):
@@ -72,33 +108,48 @@ def capture_segment(channel_url, out_path, seconds, log_path=None):
     for p in (out_path, part_path):
         if os.path.exists(p):
             os.remove(p)
-    cmd = ytdlp_cmd() + ["-f", FORMAT, "-o", out_path, channel_url]
-    logf = open(log_path, "w") if log_path else subprocess.DEVNULL
-    print(f"[capture] recording {seconds}s -> {out_path}", flush=True)
+    cmd = ytdlp_cmd() + ["-f", format_for(channel_url), "-o", out_path, channel_url]
     t0 = time.time()
-    popen_kw = {}
-    if os.name == "nt":
-        popen_kw["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-    else:
-        popen_kw["start_new_session"] = True
-    proc = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, **popen_kw)
-    timer = threading.Timer(seconds, _kill_tree, args=(proc,))
-    timer.start()
-    try:
-        proc.wait()
-    finally:
-        timer.cancel()
-        if log_path:
-            logf.close()
-    # yt-dlp writes .part while recording; on kill it may not rename it.
-    if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
-        final = out_path
-    elif os.path.exists(part_path) and os.path.getsize(part_path) > 0:
-        os.rename(part_path, out_path)
-        final = out_path
-        print(f"[capture] recovered .part -> {out_path}", flush=True)
-    else:
-        raise RuntimeError(f"nothing recorded for {channel_url} "
+    # Retry loop: YouTube's bot check fires intermittently on this VM even
+    # while the stream is live (2026-11-18: same URL passed once, failed
+    # minutes later) — a failed extraction is usually transient, so retry
+    # up to 3 times before giving up the round.
+    final = None
+    for attempt in range(1, 4):
+        for p in (out_path, part_path):
+            if os.path.exists(p):
+                os.remove(p)
+        logf = open(log_path, "w") if log_path else subprocess.DEVNULL
+        print(f"[capture] recording {seconds}s -> {out_path} (attempt {attempt}/3)",
+              flush=True)
+        popen_kw = {}
+        if os.name == "nt":
+            popen_kw["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kw["start_new_session"] = True
+        proc = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, **popen_kw)
+        timer = threading.Timer(seconds, _kill_tree, args=(proc,))
+        timer.start()
+        try:
+            proc.wait()
+        finally:
+            timer.cancel()
+            if log_path:
+                logf.close()
+        # yt-dlp writes .part while recording; on kill it may not rename it.
+        if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+            final = out_path
+            break
+        elif os.path.exists(part_path) and os.path.getsize(part_path) > 0:
+            os.rename(part_path, out_path)
+            final = out_path
+            print(f"[capture] recovered .part -> {out_path}", flush=True)
+            break
+        print(f"[capture] attempt {attempt} recorded nothing, retrying in 10s",
+              flush=True)
+        time.sleep(10)
+    if final is None:
+        raise RuntimeError(f"nothing recorded for {channel_url} after 3 attempts "
                            f"(see {log_path or 'yt-dlp output'})")
     dur = media_duration(final)
     print(f"[capture] done in {time.time() - t0:.0f}s, file "
