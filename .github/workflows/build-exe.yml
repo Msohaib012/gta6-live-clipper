@@ -39,7 +39,7 @@ jobs:
             }
           }
           if (-not $ok) {
-            Write-Host "gyan.dev unavailable — falling back to BtbN FFmpeg-Builds (GitHub release)"
+            Write-Host "gyan.dev unavailable - falling back to BtbN FFmpeg-Builds (GitHub release)"
             Invoke-WebRequest -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip" -OutFile ffmpeg.zip
           }
           Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_dl
@@ -48,7 +48,7 @@ jobs:
           .\ffmpeg.exe -version
           .\ffprobe.exe -version
 
-      - name: Build .exe with PyInstaller (onedir — settings/clips live next to the exe)
+      - name: Build .exe with PyInstaller (onedir - settings/clips live next to the exe)
         run: |
           pyinstaller --onedir --clean --noconfirm --name GTA6-Live-Clipper --console --add-data "dashboard.html;." --add-data "settings.json;." --add-data "channels.json;." --add-data "fonts;fonts" --add-data "static;static" --add-data "models;models" --add-data "assets;assets" --add-binary "ffmpeg.exe;." --add-binary "ffprobe.exe;." --collect-all yt_dlp --collect-all faster_whisper --collect-all ctranslate2 --collect-all av --collect-all mediapipe --collect-all cv2 dashboard.py
           dir dist\GTA6-Live-Clipper
@@ -73,11 +73,11 @@ jobs:
           tag_name: v1.0.0
           name: GTA 6 Live Clipper v1.0.0 (Windows)
           body: |
-            Portable Windows build — double-click GTA6-Live-Clipper.exe, no Python install needed.
-            **Download: GTA6-Live-Clipper-Portable.zip** — extract it anywhere and run GTA6-Live-Clipper.exe (ffmpeg + ffprobe are included next to it).
+            Portable Windows build - double-click GTA6-Live-Clipper.exe, no Python install needed.
+            **Download: GTA6-Live-Clipper-Portable.zip** - extract it anywhere and run GTA6-Live-Clipper.exe (ffmpeg + ffprobe are included next to it).
             The dashboard opens at http://127.0.0.1:5000 automatically.
-            Add live streams (YouTube search or paste a link), pick caption styles, star favorites in order, press Start — clips land in the Gallery as vertical Shorts.
+            Add live streams (YouTube search or paste a link), pick caption styles, star favorites in order, press Start - clips land in the Gallery as vertical Shorts.
             Hindi/Urdu speech is captioned in Roman script by default.
-            First run downloads the Whisper speech model (~150 MB) — needs internet once.
+            First run downloads the Whisper speech model (~150 MB) - needs internet once.
           files: |
             GTA6-Live-Clipper-Portable.zip
