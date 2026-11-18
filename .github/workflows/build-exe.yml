@@ -28,7 +28,20 @@ jobs:
       - name: Download ffmpeg + ffprobe (Windows)
         shell: powershell
         run: |
-          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+          $ok = $false
+          for ($i = 1; $i -le 3 -and -not $ok; $i++) {
+            try {
+              Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip -ErrorAction Stop
+              $ok = $true
+            } catch {
+              Write-Host "gyan.dev attempt $i failed: $($_.Exception.Message)"
+              Start-Sleep -Seconds 20
+            }
+          }
+          if (-not $ok) {
+            Write-Host "gyan.dev unavailable — falling back to BtbN FFmpeg-Builds (GitHub release)"
+            Invoke-WebRequest -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip" -OutFile ffmpeg.zip
+          }
           Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_dl
           Get-ChildItem ffmpeg_dl -Recurse -Filter ffmpeg.exe | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName -Destination .\ffmpeg.exe }
           Get-ChildItem ffmpeg_dl -Recurse -Filter ffprobe.exe | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName -Destination .\ffprobe.exe }
