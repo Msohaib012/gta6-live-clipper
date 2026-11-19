@@ -388,9 +388,15 @@ def extract_audio(src, start, dur, out_path):
     # -ss is sample-accurate). This matches transcribe.py, which also
     # transcribes the full WAV — so the audio, the transcript, and the
     # captions all share one time base.
+    # Cheap hardening (2026-11-19, PeakCut extract_audio pattern):
+    # aresample=async=1:first_pts=0 pads any gaps so WAV second 0 =
+    # file second 0, normalising the audio time base. This does NOT fix
+    # the video offset (that is the per-clip av_align measurement) — it
+    # only keeps the audio's own clock honest.
     tmp_wav = out_path + ".full.wav"
     run(["ffmpeg", "-y", "-v", "error",
-         "-i", src, "-vn", "-ac", "1", "-ar", "16000", tmp_wav],
+         "-i", src, "-vn", "-ac", "1", "-ar", "16000",
+         "-af", "aresample=async=1:first_pts=0", tmp_wav],
         "full audio extraction")
     run(["ffmpeg", "-y", "-v", "error",
          "-ss", str(start), "-i", tmp_wav, "-t", str(dur),

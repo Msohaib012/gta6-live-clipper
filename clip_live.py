@@ -54,11 +54,27 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
 
 from capture import capture_segment, is_live, prune_segments  # noqa: E402
-from render_short import render_short  # noqa: E402
-from transcribe import pick_moment, transcribe_segment  # noqa: E402
+from render_short import render_short, FRAME_STYLES, DEFAULT_FRAME_STYLE  # noqa: E402
+try:
+    # Automatic per-clip A/V sync (PeakCut _align pattern, 2026-11-19):
+    # measures the video-behind-audio offset from game subtitles vs
+    # Whisper transcript, carries clock_fix forward per channel.
+    from av_align import (measure_av_offset, load_clock_fix,
+                          save_clock_fix, channel_key_for)  # noqa: E402
+    _AV_ALIGN = True
+except Exception:  # module missing -> fall back to 0.0, loop unaffected
+    _AV_ALIGN = False
+    measure_av_offset = load_clock_fix = save_clock_fix = None
+    channel_key_for = lambda p: "unknown"
+from transcribe import pick_moment, transcribe_segment, moment_window  # noqa: E402
 from captions import STYLES  # noqa: E402
 from settings import next_favorite_style  # noqa: E402
-from chat import ChatManager, chat_burst_windows  # noqa: E402
+from chat import (ChatManager, chat_burst_windows, hype_burst_windows,
+                  score_chat_windows)  # noqa: E402
+try:
+    import gemini_pick as _gemini_pick  # wording-based moment scoring
+except Exception:  # module missing -> loudness-only picking, loop unaffected
+    _gemini_pick = None
 # Game detection (ClipKontrast games.py port) + stream titles for it.
 import games  # noqa: E402
 from stream_discovery import get_stream_title  # noqa: E402
@@ -69,6 +85,11 @@ except Exception:  # google-api client not installed -> posting disabled
     enqueue_clip = None
     start_queue_worker = None
 
+try:
+    import bridge_client as _bridge  # website requests + progress + publish
+except Exception:  # bridge down -> loop still runs on its own channels
+    _bridge = None
+
 DEFAULT_STYLE = "neon"
 DEFAULT_MODE = "game"
 DEFAULT_LANGUAGE = "auto"   # auto-detect (Whisper); en | hi | ur to force
@@ -76,11 +97,28 @@ DEFAULT_CAPTION_MODE = "auto"  # auto | en | hi | hi-roman | ur | ur-roman
 DEFAULT_ROMAN_MODE = "local"   # local | gemini (gemini needs key in config.json)
 DEFAULT_SEGMENT_MINUTES = 3
 DEFAULT_THRESHOLD_DB = -28.0
-DEFAULT_CLIP_LEN = 40.0
+DEFAULT_CLIP_LEN = 40.0  # 2026-11-19 (sohaib): 40s is the MINIMUM clip
+                         # length, NOT a fixed length — the moment's
+                         # natural speech span decides the length, up to
+                         # MAX_CLIP_LEN (60s). See transcribe.moment_window.
+MAX_CLIP_LEN = 60.0
 DEFAULT_PAD = 8.0
 DEFAULT_KEEP_SEGMENTS = 4
 DEFAULT_POST_SPACING_MIN = 30
 DEFAULT_DAILY_CAP = 10
+
+# --- auto-shorts quality gate (2026-11-19, sohaib's order) -------------
+# Auto clips must be the BEST shots only (quality over quantity): Gemini
+# judges the WORDING (funny / emotional / incident), not just loudness.
+# Only a Gemini score >= GEMINI_MIN_SCORE renders an auto clip, and at
+# most AUTO_CAP_PER_HOUR auto clips per hour across all channels.
+# No Gemini key -> the gate is off and the old loudness trigger runs
+# (logged once), so the loop never blocks on the key.
+GEMINI_MIN_SCORE = 7.0
+AUTO_CAP_PER_HOUR = 2
+AUTO_CAP_WINDOW_S = 3600
+AUTO_CAP_FILE = os.path.join(BASE, "auto_cap.json")
+_GEMINI_NO_KEY_LOGGED = {"done": False}
 
 # Live watch status, read by the dashboard: {channel: {...}}
 WATCH_STATUS = {}
@@ -289,6 +327,37 @@ def _set_status(channel, **kw):
         st["last_check"] = datetime.datetime.now().strftime("%H:%M:%S")
 
 
+def _auto_cap_ok(cap=AUTO_CAP_PER_HOUR, window_s=AUTO_CAP_WINDOW_S):
+    """True when fewer than `cap` auto clips were made in the last
+    `window_s` seconds (timestamps in AUTO_CAP_FILE, pruned on read)."""
+    try:
+        ts = json.load(open(AUTO_CAP_FILE))
+        if not isinstance(ts, list):
+            ts = []
+    except Exception:
+        ts = []
+    now = time.time()
+    ts = [t for t in ts if now - float(t) < window_s]
+    return len(ts) < cap
+
+
+def _auto_cap_record():
+    """Record one auto clip now (for the hourly cap)."""
+    try:
+        ts = json.load(open(AUTO_CAP_FILE))
+        if not isinstance(ts, list):
+            ts = []
+    except Exception:
+        ts = []
+    now = time.time()
+    ts = [t for t in ts if now - float(t) < AUTO_CAP_WINDOW_S]
+    ts.append(now)
+    try:
+        json.dump(ts, open(AUTO_CAP_FILE, "w"))
+    except Exception:
+        pass
+
+
 def process_segment(seg_path, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
                     clip_len=DEFAULT_CLIP_LEN, pad=DEFAULT_PAD,
                     prefix="gta6_short", transcript_path=None, energy_path=None,
@@ -296,6 +365,8 @@ def process_segment(seg_path, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
                     caption_mode=DEFAULT_CAPTION_MODE,
                     roman_mode=DEFAULT_ROMAN_MODE, res=720, moment=None,
                     ratio="9:16", facecam_pos="auto", caption_pos="auto",
+                    facecam_size="medium", facecam_band=50,
+                    facecam_band_w=100, frame_style=DEFAULT_FRAME_STYLE,
                     trigger_name=None, game_name=None, game_tags=None):
     """Transcribe + pick + render ONE segment. Returns (clip_path, info) or
     (None, info) if the segment has no usable moment.
@@ -328,6 +399,8 @@ def process_segment(seg_path, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
             "channel": channel, "language": language,
             "caption_mode": caption_mode, "kind": "live",
             "ratio": ratio, "facecam_pos": facecam_pos,
+            "facecam_size": facecam_size, "facecam_band": facecam_band,
+            "facecam_band_w": facecam_band_w, "frame_style": frame_style,
             "caption_pos": caption_pos, "game_name": game_name,
             "game_tags": game_tags or [],
             "trigger": trigger_name or style_src}
@@ -337,13 +410,44 @@ def process_segment(seg_path, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
         return None, info
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     clip_path = os.path.join(out_dir, f"{prefix}_{ts}.mp4")
+    # --- AUTOMATIC A/V SYNC (2026-11-19, PeakCut _align pattern) ---
+    # Measure this clip's video-behind-audio offset from the game
+    # subtitles vs the Whisper transcript (median over matched lines),
+    # seeded by the channel's carried-forward clock_fix. The measured
+    # value is passed as this clip's av_offset only; the global default
+    # stays 0.0 and no manual flag is ever used. Measurement failure
+    # (no subtitles, OCR unavailable, <3 matches) falls back to the
+    # seed and NEVER crashes the loop.
+    av_offset_s = 0.0
+    av_measured = False
+    if _AV_ALIGN:
+        try:
+            ckey = channel_key_for(seg_path)
+            seed = load_clock_fix(ckey, 0.0)
+            off, n, det = measure_av_offset(seg_path, tp, start, end,
+                                            seed=seed, verbose=False)
+            av_offset_s = float(off)
+            av_measured = n >= 3
+            if av_measured:
+                save_clock_fix(ckey, av_offset_s)
+            print(f"[clip] av-align: channel={ckey} seed={seed:.2f}s "
+                  f"measured={av_offset_s:.2f}s matches={n} "
+                  f"{'SAVED clock_fix' if av_measured else 'fallback to seed'}")
+        except Exception as e:
+            print(f"[clip] av-align failed ({e}) — using av_offset 0.0")
+            av_offset_s = 0.0
+    info["av_offset_s"] = round(av_offset_s, 2)
+    info["av_measured"] = av_measured
     render_short(seg_path, start, end, tp, style, mode, clip_path, work_dir,
                  res=res, ratio=ratio, facecam_pos=facecam_pos,
-                 caption_pos=caption_pos)
+                 caption_pos=caption_pos, facecam_size=facecam_size,
+                 facecam_band=facecam_band, facecam_band_w=facecam_band_w,
+                 frame_style=frame_style, av_offset_s=av_offset_s)
     info["clip"] = clip_path
     info["elapsed_s"] = round(time.time() - t0, 1)
     # gallery sidecar: style / trigger / source, read by the dashboard
     sidecar = {"style": style, "style_source": style_src, "kind": "live",
+               "frame_style": frame_style,
                "trigger": info.get("trigger", ""),
                "channel": channel or "",
                "moment": info["moment"],
@@ -396,6 +500,80 @@ def _chat_burst_trigger(tracker, seg_start_ts, segment_minutes, tp, clip_len):
     return None
 
 
+def _hype_burst_trigger(tracker, seg_start_ts, segment_minutes, tp, clip_len,
+                        gemini_score=None):
+    """HYPE-burst TRIGGER (2026-11-19, sohaib's order): the chat suddenly
+    SPIKED — many comments arriving at once — and that moment is a Short.
+    Primary scorer is score_chat_windows (adapted from GTA-Auto-Clipper):
+    distinct lines per user + reaction vocabulary + median/MAD robust
+    signal, with the peak 5s bucket giving the exact hype moment for
+    re-centring. Falls back to the ratio-based hype_burst_windows when
+    the reference scorer has no text data. Returns
+    (moment_start, unique, score, strength) or None, where score is the
+    reference signal (0-4) or the ratio for the fallback. Fires when
+    EITHER:
+    - Gemini scored decently (>= 5) AND a hype burst exists (burst +
+      wording together = a moment worth a Short), OR
+    - the burst alone is very strong (signal >= 3.0, or ratio >= 5x,
+      or unique >= 20).
+    Requires real speech at the burst (>= 5 transcript words within
+    15s) — a chat spike with nobody talking never clips.
+    Windows are segment-relative."""
+    if tracker is None:
+        return None
+    try:
+        # Primary: reference-style scorer (distinct lines + reactions +
+        # median/MAD). peak_t is the exact hype moment (5s bucket).
+        scored = score_chat_windows(tracker, seg_start_ts,
+                                    segment_minutes * 60)
+        top = None
+        score = 0.0
+        strength = 0.0
+        burst_c = None
+        unique = 0
+        if (scored and scored[0]["signal"] >= 2.5
+                and scored[0]["burst"] >= 2.0):
+            top = scored[0]
+            score = top["signal"]
+            strength = min(1.0, score / 4.0)
+            burst_c = top["peak_t"]
+            unique = top["chatters"]
+        else:
+            # Fallback: ratio-based spike (no text data, or no strong
+            # reference signal).
+            wins = hype_burst_windows(tracker, seg_start_ts,
+                                      segment_minutes * 60)
+            if not wins:
+                return None
+            top = wins[0]
+            score = top["ratio"]
+            strength = top["strength"]
+            burst_c = (top["start"] + top["end"]) / 2
+            unique = top["unique"]
+        is_ref = top is not None and "signal" in top
+        if is_ref:
+            # reference signal (0-4): >= 3.0 alone is very strong
+            strong_alone = score >= 3.0
+        else:
+            # ratio fallback: >= 5x spike or >= 20 people alone is strong
+            strong_alone = score >= 5.0 or unique >= 20
+        decent_gemini = gemini_score is not None and gemini_score >= 5.0
+        if not (strong_alone or decent_gemini):
+            return None
+        try:
+            words = json.load(open(tp)).get("words", [])
+        except Exception:
+            words = []
+        near = [w for w in words if abs(w["start"] - burst_c) <= 15]
+        if len(near) < 5:
+            return None
+        s0 = max(0.0, burst_c - clip_len / 2)
+        return s0, unique, score, strength
+    except Exception:
+        pass
+    return None
+
+
 def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
                        threshold_db, clip_len, pad, keep_segments,
                        force_clip, on_clip, on_event, queue,
@@ -403,9 +581,18 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
                        caption_mode=DEFAULT_CAPTION_MODE,
                        roman_mode=DEFAULT_ROMAN_MODE, res=720,
                        ratio="9:16", facecam_pos="auto", caption_pos="auto",
-                       mark_times=None, game_name=None, game_tags=None):
+                       facecam_size="medium", facecam_band=50,
+                       facecam_band_w=100, frame_style=DEFAULT_FRAME_STYLE,
+                       mark_times=None, game_name=None, game_tags=None,
+                       on_stage=None, auto_publish=False):
     """One capture+decide+maybe-render cycle for ONE channel.
-    Returns the clip path made, or None. Updates WATCH_STATUS."""
+    Returns the clip path made, or None. Updates WATCH_STATUS.
+    on_stage(stage, progress) — optional progress hook (website requests):
+    called at capturing (5) / transcribing (45) / rendering (65).
+    auto_publish=True (round-robin auto path only) publishes a made clip
+    to the Gallery via the bridge, exactly like a manual request clip.
+    The manual request path keeps auto_publish=False — it publishes
+    through its own on_clip and must never double-publish."""
     def ev(msg):
         print(msg, flush=True)
         if on_event:
@@ -421,8 +608,12 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
     if not live:
         ev(f"[live] {channel} is not live right now — skipping this round")
         return None
-    # live chat (Twitch IRC, people not messages) — started once per channel
-    tracker = CHAT.track(channel) if "twitch.tv" in channel.lower() else None
+    if on_stage:
+        try: on_stage("capturing", 5)
+        except Exception: pass
+    # live chat (Twitch IRC / YouTube yt-dlp, people not messages) —
+    # started once per channel; ChatManager returns None for unsupported
+    tracker = CHAT.track(channel)
     seg_start_ts = time.time()
     seg_path = os.path.join(
         buffer_dir,
@@ -434,6 +625,9 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
         ev(f"[live] capture failed for {channel}: {e}")
         return None
     _set_status(channel, last_segment=os.path.basename(seg_path))
+    if on_stage:
+        try: on_stage("transcribing", 45)
+        except Exception: pass
     with WATCH_LOCK:
         WATCH_STATUS[channel]["segments"] += 1
     work_dir = os.path.join(out_dir, "work_" +
@@ -454,8 +648,9 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
             for mt in mark_times:
                 off = mt - seg_start_ts
                 if 0 <= off < segment_minutes * 60:
-                    s0 = max(0.0, off - pad)
-                    moment = (s0, min(segment_minutes * 60.0, s0 + clip_len), why)
+                    # variable length (40s floor, 60s cap) around the mark
+                    s0, e0 = moment_window(tp, off, min_len=clip_len)
+                    moment = (s0, min(segment_minutes * 60.0, e0), why)
                     trigger = True
                     trigger_name = "manual mark"
                     ev(f"[live] {channel}: manual mark at {off:.0f}s -> CLIP")
@@ -463,13 +658,57 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
         if trigger_name is None:
             for ct in find_clip_that(tp):
                 if 0 <= ct < segment_minutes * 60:
-                    s0 = max(0.0, ct - pad)
-                    moment = (s0, min(segment_minutes * 60.0, s0 + clip_len), why)
+                    # variable length (40s floor, 60s cap) around "clip that"
+                    s0, e0 = moment_window(tp, ct, min_len=clip_len)
+                    moment = (s0, min(segment_minutes * 60.0, e0), why)
                     trigger = True
                     trigger_name = "clip that"
                     ev(f"[live] {channel}: streamer said 'clip that' "
                        f"at {ct:.0f}s -> CLIP")
                     break
+        # Gemini wording gate (auto path only — never on force_clip,
+        # manual marks or "clip that", which are user-initiated): when a
+        # key is configured, the WORDING decides. Score >= GEMINI_MIN_SCORE
+        # renders (moment re-centred on Gemini's window); below it the
+        # loudness trigger is overridden to skip — a loud-but-boring
+        # segment must NOT become a clip. No key / API failure -> the
+        # loudness trigger stands (logged once) so the loop never blocks.
+        # Segments with < 10 words have nothing to judge, so Gemini is
+        # skipped there and loudness stands (a loud pure-game moment can
+        # still clip; the hourly cap still applies).
+        gemini = None
+        if not force_clip and trigger_name is None and _gemini_pick is not None \
+                and why.get("words", 0) >= 10:
+            # No key needed here — score_moment calls Gemini through the
+            # already-connected custom.gemini connector helper. If the
+            # helper fails it returns None and the loudness trigger stands.
+            gemini = _gemini_pick.score_moment(tp, ep, clip_len, pad)
+            if gemini is not None:
+                    gs = float(gemini.get("score") or 0)
+                    gcat = gemini.get("category") or "moment"
+                    if gs >= GEMINI_MIN_SCORE:
+                        trigger = True
+                        trigger_name = f"gemini: {gcat}"
+                        gs0, ge0 = gemini.get("start"), gemini.get("end")
+                        if gs0 is not None and ge0 is not None and ge0 > gs0:
+                            dur = float(segment_minutes * 60)
+                            c = (float(gs0) + float(ge0)) / 2
+                            # variable length (40s floor, 60s cap) around
+                            # Gemini's moment centre
+                            s0, e0 = moment_window(tp, c, min_len=clip_len)
+                            e0 = min(dur, e0)
+                            moment = (s0, e0, why)
+                        ev(f"[live] {channel}: gemini {gs:.0f}/10 ({gcat}) "
+                           f"— {gemini.get('reason') or ''}")
+                    else:
+                        trigger = False
+                        ev(f"[live] {channel}: gemini {gs:.0f}/10 "
+                           f"({gcat}) — below {GEMINI_MIN_SCORE:.0f}, "
+                           f"loudness trigger off (loud was {loud} dB)")
+        # Gemini score for the hype-burst trigger below (None = no Gemini
+        # verdict this segment; the burst can still fire on its own when
+        # it is very strong).
+        gemini_score = float(gemini.get("score") or 0) if gemini else None
         # chat-burst TRIGGER (see _chat_burst_trigger): the crowd itself
         # is a moment. Only fires when loudness did NOT trigger and no
         # manual mark / "clip that" won.
@@ -480,12 +719,51 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
                                       segment_minutes, tp, clip_len)
             if got is not None:
                 s0, chat_unique, _score = got
-                moment = (s0, min(segment_minutes * 60.0, s0 + clip_len), why)
+                # variable length (40s floor, 60s cap) around the burst
+                # centre (the trigger's s0 was burst_c - clip_len/2)
+                s0, e0 = moment_window(tp, s0 + clip_len / 2,
+                                       min_len=clip_len)
+                moment = (s0, min(segment_minutes * 60.0, e0), why)
                 trigger = True
                 trigger_name = "chat burst"
                 chat_burst = True
                 ev(f"[live] {channel}: chat burst ({chat_unique} people, "
                    f"score {_score:.2f}) at {s0 + clip_len / 2:.0f}s -> CLIP")
+        # HYPE-burst TRIGGER (2026-11-19): a sudden chat SPIKE. Fires
+        # when Gemini scored decently (>= 5) OR the burst alone is very
+        # strong — even when Gemini vetoed a loud-but-boring segment or
+        # loudness never triggered. Only when no other trigger won.
+        hype_burst = False
+        hype_ratio = 0.0
+        if tracker is not None and trigger_name is None and not trigger:
+            got = _hype_burst_trigger(tracker, seg_start_ts,
+                                      segment_minutes, tp, clip_len,
+                                      gemini_score)
+            if got is not None:
+                s0, chat_unique, hype_score_v, _strength = got
+                # variable length (40s floor, 60s cap) around the burst
+                # centre (the trigger's s0 was burst_c - clip_len/2)
+                s0, e0 = moment_window(tp, s0 + clip_len / 2,
+                                       min_len=clip_len)
+                moment = (s0, min(segment_minutes * 60.0, e0), why)
+                trigger = True
+                trigger_name = "hype burst"
+                chat_burst = True
+                hype_burst = True
+                hype_ratio = hype_score_v
+                ev(f"[live] {channel}: HYPE burst ({chat_unique} people, "
+                   f"score {hype_score_v:.1f}) at {s0 + clip_len / 2:.0f}s "
+                   f"-> CLIP")
+        # hourly auto cap: at most AUTO_CAP_PER_HOUR auto clips per hour
+        # across all channels (quality over quantity — 1-2/hour is fine).
+        # Manual marks, "clip that", force-clip and website requests are
+        # user-initiated and are never capped.
+        is_auto = bool(trigger) and not force_clip and trigger_name not in (
+            "manual mark", "clip that")
+        if is_auto and not _auto_cap_ok():
+            trigger = False
+            ev(f"[live] {channel}: auto cap reached "
+               f"({AUTO_CAP_PER_HOUR}/hour) — skipping this moment")
         ev(f"[live] {channel}: loudest {loud} dB, words={why['words']} -> "
            f"{'CLIP' if trigger else 'skip'}")
         if not trigger:
@@ -509,22 +787,33 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
             except Exception as e:
                 ev(f"[live] {channel}: chat check failed ({e}) — loudness only")
             _set_status(channel, chat_unique=chat_unique)
+        if on_stage:
+            try: on_stage("rendering", 65)
+            except Exception: pass
         clip_path, info = process_segment(
             seg_path, out_dir, style, mode, clip_len, pad,
             transcript_path=tp, energy_path=ep, channel=channel,
             language=language, caption_mode=caption_mode,
             roman_mode=roman_mode, res=res, moment=moment,
             ratio=ratio, facecam_pos=facecam_pos, caption_pos=caption_pos,
+            facecam_size=facecam_size, facecam_band=facecam_band,
+            facecam_band_w=facecam_band_w, frame_style=frame_style,
             trigger_name=trigger_name, game_name=game_name,
             game_tags=game_tags)
         if chat_burst:
             info["chat_burst"] = True
             info["chat_unique"] = chat_unique
-            info["trigger"] = "chat burst"
+            info["trigger"] = trigger_name or "chat burst"
+            if hype_burst:
+                info["hype_burst"] = True
+                info["hype_ratio"] = hype_ratio
             try:
                 sc = json.load(open(clip_path + ".info.json"))
-                sc["trigger"] = "chat burst"
-                sc["signals"].append(f"chat burst ({chat_unique} people)")
+                sc["trigger"] = trigger_name or "chat burst"
+                sig = (f"hype burst ({chat_unique} people, "
+                       f"score {hype_ratio:.1f})" if hype_burst else
+                       f"chat burst ({chat_unique} people)")
+                sc["signals"].append(sig)
                 json.dump(sc, open(clip_path + ".info.json", "w"), indent=1)
             except Exception:
                 pass
@@ -532,11 +821,39 @@ def _watch_one_segment(channel, out_dir, style, mode, segment_minutes,
             with WATCH_LOCK:
                 WATCH_STATUS[channel]["clips"] += 1
             _set_status(channel, last_clip=os.path.basename(clip_path))
+            if gemini is not None:
+                info["gemini"] = gemini
+                try:
+                    sc = json.load(open(clip_path + ".info.json"))
+                    sc["signals"].append(
+                        f"gemini {float(gemini.get('score') or 0):.0f}/10 "
+                        f"{gemini.get('category') or ''}")
+                    json.dump(sc, open(clip_path + ".info.json", "w"), indent=1)
+                except Exception:
+                    pass
+            if is_auto:
+                _auto_cap_record()
             if queue is not None and enqueue_clip is not None:
                 enqueue_clip(out_dir, clip_path, channel, info,
                              game_name=game_name, game_tags=game_tags)
             if on_clip:
                 on_clip(clip_path, info)
+            # auto-publish: auto clips go to the Gallery (Pages upload +
+            # bridge /clips) exactly like manual request clips. Runs ONLY
+            # on the round-robin auto path (auto_publish=True); manual
+            # requests already publish via their own on_clip.
+            if auto_publish and _bridge is not None:
+                try:
+                    url = _bridge.publish_clip(
+                        clip_path, {"channel": channel,
+                                    "style": info.get("style")}, info)
+                    if url:
+                        ev(f"[auto] published to Gallery: {url}")
+                    else:
+                        ev("[auto] publish FAILED — clip kept locally at "
+                           f"{clip_path}")
+                except Exception as e:
+                    ev(f"[auto] publish error ({e}) — clip kept locally")
             return clip_path
     except Exception as e:
         ev(f"[live] segment processing failed for {channel}: {e}")
@@ -556,11 +873,229 @@ def _channel_settings(ch, defaults):
         url = ch.get("url") or ch.get("channel")
         out = dict(defaults)
         for k in ("language", "caption_mode", "roman_mode", "mode", "style",
-                  "res", "ratio", "facecam_pos", "caption_pos", "game"):
+                  "res", "ratio", "facecam_pos", "caption_pos", "game",
+                  "frame_style"):
             if ch.get(k):
                 out[k] = ch[k]
         return url, out
     return ch, dict(defaults)
+
+
+def _valid_choice(value, allowed, default):
+    return value if value in allowed else default
+
+
+def _process_vod_request(req, out_dir, ev):
+    """Process ONE website VOD request: a PUBLISHED video -> transcript ->
+    best moments -> vertical Shorts, published to the Gallery like a live
+    clip. The source video is working material only (process_vod deletes
+    it after rendering). Returns the list of clip paths, or None on
+    failure (request marked failed)."""
+    req_id = req.get("id") or ""
+    source = req.get("stream_url") or ""
+    favorites = [str(f) for f in (req.get("favorites") or []) if f]
+    style = str(req.get("style") or "")
+    if style in (None, "", "auto"):
+        style = favorites[0] if favorites else DEFAULT_STYLE
+    style = _valid_choice(style, list(STYLES) + ["auto"], DEFAULT_STYLE)
+    facecam_pos = _valid_choice(
+        str(req.get("facecam_pos") or "auto"),
+        ["auto", "top-right", "top-left", "mid-right", "mid-left",
+         "bottom-left", "bottom-right", "top-band", "bottom-band",
+         "stage", "stage-nofacecam", "stage-topleft",
+         "stage-topright", "stage-side", "off"],
+        "auto")
+    caption_pos = _valid_choice(
+        str(req.get("caption_pos") or "auto"),
+        ["auto", "bottom", "seam", "top", "stage-bottom",
+         "stage-top", "stage-centre", "stage-upper", "stage-lower"], "auto")
+    ratio = _valid_choice(str(req.get("ratio") or "9:16"),
+                          ["9:16", "1:1", "4:5", "16:9"], "9:16")
+    try:
+        res = int(req.get("resolution") or 720)
+    except Exception:
+        res = 720
+    res = res if res in (720, 1080) else 720
+    mode = _valid_choice(str(req.get("mode") or "gameplay"),
+                         ["game", "gameplay", "facecam", "doc"], "gameplay")
+    language = str(req.get("language") or "auto")
+    caption_mode = str(req.get("caption_mode") or "auto")
+    try:
+        count = int(req.get("count") or 3)
+    except Exception:
+        count = 3
+    count = count if 1 <= count <= 5 else 3
+    # video title/channel for the Gallery card (best effort)
+    if not req.get("channel"):
+        try:
+            _t, uploader = get_stream_title(source)
+            if uploader:
+                req["channel"] = uploader
+        except Exception:
+            pass
+    ev(f"[vod] {req_id[:8]} {source}: style={style} mode={mode} "
+       f"count={count} ratio={ratio} res={res} lang={language}")
+    if _bridge is not None:
+        _bridge.post_req_update(req_id, status="processing",
+                                stage="transcribing", progress=10)
+    try:
+        from vod import process_vod
+        clips = process_vod(
+            source, out_dir, style=style, mode=mode, res=res,
+            clip_len=40.0, count=count, language=language,
+            caption_mode=caption_mode, roman_mode=DEFAULT_ROMAN_MODE,
+            api_key=None, ratio=ratio, facecam_pos=facecam_pos,
+            caption_pos=caption_pos)
+    except Exception as e:
+        ev(f"[vod] {req_id[:8]} failed: {e}")
+        clips = []
+    if not clips:
+        if _bridge is not None:
+            _bridge.post_req_update(req_id, status="failed",
+                                    stage="failed",
+                                    error="no moments found in this video")
+            _bridge.mark_inbox(req_id, "failed")
+        ev(f"[vod] {req_id[:8]} failed — no clips made")
+        return None
+    published = 0
+    for clip_path in clips:
+        info = {}
+        try:
+            with open(clip_path + ".info.json") as f:
+                info = json.load(f)
+        except Exception:
+            pass
+        if _bridge is not None:
+            url = _bridge.publish_clip(clip_path, req, info)
+            if url:
+                published += 1
+                ev(f"[vod] {req_id[:8]} ready: {url}")
+            else:
+                ev(f"[vod] {req_id[:8]} clip saved locally but publish "
+                   f"FAILED — file kept at {clip_path}")
+    if _bridge is not None:
+        if published:
+            _bridge.mark_inbox(req_id, "done")
+        else:
+            _bridge.post_req_update(
+                req_id, stage="rendering", progress=95,
+                error="upload failed — clips are on the VM, retry pending")
+            _bridge.mark_inbox(req_id, "failed")
+            return None
+    return clips
+
+
+def _process_website_request(req, out_dir, segment_minutes, threshold_db,
+                            clip_len, pad, keep_segments, ev,
+                            game_info=None):
+    """Process ONE website clip request: capture its channel with the
+    request's OWN settings (style, facecam_pos, caption_pos, ratio,
+    resolution, language, caption_mode, mode) — never the loop's CLI
+    defaults — force a clip from the best moment, publish it to the
+    website Gallery (direct video) and mark the request ready.
+    Returns the clip path, or None on failure (request marked failed)."""
+    # VOD jobs (kind "vod", from the website's Published Video box) go
+    # to process_vod instead of live capture.
+    if str(req.get("kind") or "live") == "vod":
+        return _process_vod_request(req, out_dir, ev)
+    req_id = req.get("id") or ""
+    channel = req.get("stream_url") or ""
+    favorites = [str(f) for f in (req.get("favorites") or []) if f]
+    style = str(req.get("style") or "")
+    if style in (None, "", "auto"):
+        style = favorites[0] if favorites else DEFAULT_STYLE
+    style = _valid_choice(style, list(STYLES) + ["auto"], DEFAULT_STYLE)
+    facecam_pos = _valid_choice(
+        str(req.get("facecam_pos") or "auto"),
+        ["auto", "top-right", "top-left", "mid-right", "mid-left",
+         "bottom-left", "bottom-right", "top-band", "bottom-band",
+         "stage", "stage-nofacecam", "stage-topleft",
+         "stage-topright", "stage-side", "off"],
+        "auto")
+    facecam_size = _valid_choice(
+        str(req.get("facecam_size") or "medium"),
+        ["small", "medium", "large"], "medium")
+    try:
+        facecam_band = int(req.get("facecam_band") or 50)
+    except Exception:
+        facecam_band = 50
+    facecam_band = facecam_band if facecam_band in (30, 50) else 50
+    try:
+        facecam_band_w = int(req.get("band_width") or 100)
+    except Exception:
+        facecam_band_w = 100
+    facecam_band_w = facecam_band_w if facecam_band_w in (100, 75, 50) else 100
+    caption_pos = _valid_choice(
+        str(req.get("caption_pos") or "auto"),
+        ["auto", "bottom", "seam", "top", "stage-bottom",
+         "stage-top", "stage-centre", "stage-upper", "stage-lower"], "auto")
+    frame_style = _valid_choice(
+        str(req.get("frame_style") or "gold"),
+        list(FRAME_STYLES), "gold")
+    ratio = _valid_choice(str(req.get("ratio") or "9:16"),
+                          ["9:16", "1:1", "4:5", "16:9"], "9:16")
+    try:
+        res = int(req.get("resolution") or 720)
+    except Exception:
+        res = 720
+    res = res if res in (720, 1080) else 720
+    mode = _valid_choice(str(req.get("mode") or "gameplay"),
+                         ["game", "gameplay", "facecam", "doc"], "gameplay")
+    language = str(req.get("language") or "auto")
+    caption_mode = str(req.get("caption_mode") or "auto")
+    gname, gtags = (game_info or {}).get(channel, (None, []))
+    ev(f"[req] {req_id[:8]} {req.get('channel') or channel}: "
+       f"style={style} facecam={facecam_pos} size={facecam_size} "
+       f"band={facecam_band} captions={caption_pos} frame={frame_style} "
+       f"ratio={ratio} res={res} lang={language} mode={mode}")
+    if _bridge is not None:
+        _bridge.post_req_update(req_id, status="processing",
+                                stage="capturing", progress=5)
+
+    def on_stage(stage, pct):
+        if _bridge is not None:
+            _bridge.post_req_update(req_id, stage=stage, progress=pct)
+
+    def on_clip(clip_path, info):
+        # publish: Pages upload + gallery post + request ready
+        if _bridge is not None:
+            url = _bridge.publish_clip(clip_path, req, info)
+            if url:
+                ev(f"[req] {req_id[:8]} ready: {url}")
+            else:
+                ev(f"[req] {req_id[:8]} clip saved locally but publish "
+                   f"FAILED — file kept at {clip_path}")
+                _bridge.post_req_update(
+                    req_id, stage="rendering", progress=95,
+                    error="upload failed — clip is on the VM, retry pending")
+                _bridge.mark_inbox(req_id, "failed")
+
+    try:
+        clip_path = _watch_one_segment(
+            channel, out_dir, style, mode, segment_minutes,
+            threshold_db, clip_len, pad, keep_segments,
+            True, on_clip, ev, None,
+            language=language, caption_mode=caption_mode,
+            roman_mode=DEFAULT_ROMAN_MODE, res=res,
+            ratio=ratio, facecam_pos=facecam_pos, caption_pos=caption_pos,
+            facecam_size=facecam_size, facecam_band=facecam_band,
+            facecam_band_w=facecam_band_w, frame_style=frame_style,
+            mark_times=None, game_name=gname, game_tags=gtags,
+            on_stage=on_stage)
+    except Exception as e:
+        ev(f"[req] {req_id[:8]} failed: {e}")
+        clip_path = None
+    if not clip_path:
+        if _bridge is not None:
+            _bridge.post_req_update(req_id, status="failed",
+                                    stage="failed",
+                                    error="stream offline or no moment")
+            _bridge.mark_inbox(req_id, "failed")
+        ev(f"[req] {req_id[:8]} failed — no clip made")
+        return None
+    if _bridge is not None:
+        _bridge.mark_inbox(req_id, "done")
+    return clip_path
 
 
 def run_loop(channels, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
@@ -573,7 +1108,8 @@ def run_loop(channels, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
              daily_cap=DEFAULT_DAILY_CAP, force_event=None,
              language=DEFAULT_LANGUAGE, caption_mode=DEFAULT_CAPTION_MODE,
              roman_mode=DEFAULT_ROMAN_MODE, res=720,
-             ratio="9:16", facecam_pos="auto", caption_pos="auto"):
+             ratio="9:16", facecam_pos="auto", caption_pos="auto",
+             frame_style=DEFAULT_FRAME_STYLE):
     """24/7 watch loop over a channel list (round-robin: one segment per
     channel per round). `channels` is a list of Twitch URLs; a single
     channel is just a one-element list. Runs until stop_event is set,
@@ -598,10 +1134,14 @@ def run_loop(channels, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
                   f"daily cap {daily_cap})", flush=True)
     clips = []
     t_start = time.time()
+    # crash recovery: a website request left 'processing' when the loop
+    # died goes back to 'pending' so it is retried on this start.
+    if _bridge is not None:
+        _bridge.reset_stuck_processing()
     defaults = {"style": style, "mode": mode, "language": language,
                 "caption_mode": caption_mode, "roman_mode": roman_mode,
                 "res": res, "ratio": ratio, "facecam_pos": facecam_pos,
-                "caption_pos": caption_pos}
+                "caption_pos": caption_pos, "frame_style": frame_style}
 
     def ev(msg):
         print(msg, flush=True)
@@ -615,8 +1155,9 @@ def run_loop(channels, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
        f"mode={mode} language={language} caption_mode={caption_mode} "
        f"segment={segment_minutes}min threshold={threshold_db}dB "
        f"out={out_dir} post={'on' if post else 'off'}")
-    # live-chat trackers (Twitch IRC) start once per channel, shared across
-    # rounds; YouTube live chat needs an API key, so it is not tracked.
+    # live-chat trackers (Twitch IRC + YouTube yt-dlp) start once per
+    # channel, shared across rounds; the ChatManager picks the right
+    # tracker per URL (None for anything else).
     for ch in channels:
         url = (ch.get("url") or ch.get("channel")) if isinstance(ch, dict) else ch
         CHAT.track(url)
@@ -649,6 +1190,17 @@ def run_loop(channels, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
             if watch_minutes and (time.time() - t_start) > watch_minutes * 60:
                 ev("[live] watch time reached — stopping")
                 break
+            # website requests first: sequential queue, one at a time,
+            # each with its own settings. The round-robin over the
+            # watched channels only runs while the queue is empty.
+            if _bridge is not None:
+                req = _bridge.take_oldest_pending()
+                if req:
+                    _process_website_request(
+                        req, out_dir, segment_minutes, threshold_db,
+                        clip_len, pad, keep_segments, ev,
+                        game_info=game_info)
+                    continue
             for ch in channels:
                 if stop_event.is_set():
                     break
@@ -669,8 +1221,10 @@ def run_loop(channels, out_dir, style=DEFAULT_STYLE, mode=DEFAULT_MODE,
                                        ratio=cfg["ratio"],
                                        facecam_pos=cfg["facecam_pos"],
                                        caption_pos=cfg["caption_pos"],
+                                       frame_style=cfg.get("frame_style", DEFAULT_FRAME_STYLE),
                                        mark_times=marks or None,
-                                       game_name=gname, game_tags=gtags)
+                                       game_name=gname, game_tags=gtags,
+                                       auto_publish=True)
                 if c:
                     clips.append(c)
             if once:
@@ -718,11 +1272,16 @@ def main():
                     help="output ratio: 9:16 (default, Shorts) | 1:1 | 4:5 | 16:9")
     ap.add_argument("--facecam-pos", default="auto",
                     choices=["auto", "top-right", "top-left", "mid-right",
-                             "mid-left", "top-band", "off"],
-                    help="facecam position (gameplay mode): auto (default) | corner | top-band | off")
+                             "mid-left", "top-band", "off", "stage",
+                             "stage-nofacecam", "stage-topleft",
+                             "stage-topright", "stage-side"],
+                    help="facecam position (gameplay mode): auto (default) | corner | top-band | off | stage (facecam top-centre + big game) | stage-nofacecam (stage look, no facecam) | stage-topleft / stage-topright (stage, facecam top-left/right) | stage-side (stage, facecam mid-left, full-frame game)")
     ap.add_argument("--caption-pos", default="auto",
-                    choices=["auto", "bottom", "seam", "top"],
-                    help="caption position: auto (default) | bottom | seam | top")
+                    choices=["auto", "bottom", "seam", "top", "stage-bottom",
+                    "stage-top", "stage-centre", "stage-upper", "stage-lower"],
+                    help="caption position: auto (default) | bottom | seam | top | stage-bottom (stage, bottom blurred zone) | stage-top / stage-centre / stage-upper / stage-lower (stage, blurred strip at that height)")
+    ap.add_argument("--frame-style", default="gold", choices=list(FRAME_STYLES),
+                    help="stage-layout facecam frame design (default: gold — the original golden comet; red = PeakCut hype red comet; line = cyan line sweep; fire = orange fire ember; static = clean still border; pulse = violet breathing ring)")
     ap.add_argument("--segment-minutes", type=int, default=DEFAULT_SEGMENT_MINUTES)
     ap.add_argument("--watch-minutes", type=int, default=0,
                     help="stop after N minutes (0 = run until Ctrl+C)")
@@ -757,7 +1316,7 @@ def main():
                  daily_cap=a.daily_cap, language=a.lang,
                  caption_mode=a.caption_mode, roman_mode=a.roman_mode,
                  res=a.res, ratio=a.ratio, facecam_pos=a.facecam_pos,
-                 caption_pos=a.caption_pos)
+                 caption_pos=a.caption_pos, frame_style=a.frame_style)
     except KeyboardInterrupt:
         print("\nstopped by user")
 
