@@ -83,11 +83,11 @@ jobs:
           name: GTA6-Live-Clipper-Portable
           path: GTA6-Live-Clipper-Portable.zip
 
-      - name: Publish GitHub Release (v1.0.4)
+      - name: Publish GitHub Release (v1.0.5)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.4
-          name: GTA 6 Live Clipper v1.0.4 (Windows)
+          tag_name: v1.0.5
+          name: GTA 6 Live Clipper v1.0.5 (Windows)
           body: |
             Portable Windows build - double-click GTA6-Live-Clipper.exe, no Python install needed.
             **Download: GTA6-Live-Clipper-Portable.zip** - extract it anywhere and run GTA6-Live-Clipper.exe (ffmpeg + ffprobe + yt-dlp are bundled inside).
@@ -95,6 +95,6 @@ jobs:
             Add live streams (YouTube search or paste a link), pick caption styles, star favorites in order, press Start - clips land in the Gallery as vertical Shorts.
             Hindi/Urdu speech is captioned in Roman script by default.
             First run downloads the Whisper speech model - tiny (~75 MB) for English, small (~466 MB) for Hindi/Urdu Roman captions - needs internet once.
-            v1.0.4: no AV offsets anywhere - voice and video are equal by construction (single-cut render: facecam and audio cut together in one export); the +8s offset is removed (it was fitted to game-dialogue captions, not real speech); black bars removed from stage renders (blur overscan fix); stage family (5 facecam positions, 11 frame styles); 12-channel best list; Gemini wording gate; chat-burst hype detection; swear masking in captions; caption bottom-band fix.
+            v1.0.5: AUTOMATIC per-clip A/V sync - every clip now measures its own video-behind-audio offset automatically (av_align.py, PeakCut _align pattern: OCR the game subtitle in the video vs Whisper word times in the audio, median offset, carried forward per channel as clock_fix; no manual measurement, no global offset - global default stays 0.0). RAJA measured 4.17s, kaicenat/Twitch 0.00s (in sync, no false correction). Plus v1.0.4: no AV offsets anywhere - voice and video are equal by construction (single-cut render: facecam and audio cut together in one export); black bars removed from stage renders (blur overscan fix); stage family (5 facecam positions, 11 frame styles); 12-channel best list; Gemini wording gate; chat-burst hype detection; swear masking in captions; caption bottom-band fix.
           files: |
             GTA6-Live-Clipper-Portable.zip
