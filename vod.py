@@ -167,6 +167,24 @@ def autosubs_to_transcript(cues, duration, caption_mode="auto",
 def download_video(url, work_dir, timeout=1800):
     """Download an uploaded video for Shorts-making (best 1080p, else best).
     Returns the local file path. The caller DELETES it after rendering."""
+    # Live stream kabhi khatam nahi hota — usay download karna hamesha
+    # chalta rehta hai aur poori request queue block kar deta hai
+    # (2026-11-20: F3O5-2fmANE live download 23 min, 582MB, phir bhi chal raha tha).
+    # Is liye pehle stream URL check karo: "yt_live_broadcast" mile to foran fail.
+    try:
+        probe = subprocess.run(
+            ytdlp_cmd() + ["--get-url", "-f",
+                           "bv*[height<=1080]+ba/b[height<=1080]/b",
+                           "--no-playlist", url],
+            capture_output=True, text=True, timeout=120)
+        if probe.returncode == 0 and "yt_live_broadcast" in probe.stdout:
+            raise RuntimeError(
+                "live stream hai — VOD ke liye published (khatam hui) video ka link do; "
+                "live stream ke liye live request bhejo")
+    except RuntimeError:
+        raise
+    except Exception:
+        pass  # probe fail ho gaya to normal download try karo
     out_tmpl = os.path.join(work_dir, "vod_source.%(ext)s")
     cmd = ytdlp_cmd() + ["-f", "bv*[height<=1080]+ba/b[height<=1080]/b",
            "-o", out_tmpl, "--no-playlist", url]

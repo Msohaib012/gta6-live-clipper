@@ -938,6 +938,7 @@ def _process_vod_request(req, out_dir, ev):
     if _bridge is not None:
         _bridge.post_req_update(req_id, status="processing",
                                 stage="transcribing", progress=10)
+    vod_err = ""
     try:
         from vod import process_vod
         clips = process_vod(
@@ -949,11 +950,12 @@ def _process_vod_request(req, out_dir, ev):
     except Exception as e:
         ev(f"[vod] {req_id[:8]} failed: {e}")
         clips = []
+        vod_err = str(e)[:200]
     if not clips:
         if _bridge is not None:
             _bridge.post_req_update(req_id, status="failed",
                                     stage="failed",
-                                    error="no moments found in this video")
+                                    error=vod_err or "no moments found in this video")
             _bridge.mark_inbox(req_id, "failed")
         ev(f"[vod] {req_id[:8]} failed — no clips made")
         return None
