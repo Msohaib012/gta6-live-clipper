@@ -211,14 +211,20 @@ CHANNEL_FACECAM_TWITCH = {
 # webcam VIDEO delayed relative to the AUDIO — a streamer-side sync issue
 # (webcam/capture latency in OBS), NOT a render bug. The pipeline
 # faithfully reproduces the source offset, so the lips lag the voice.
-# DEFAULT_AV_OFFSET_S (2026-11-19, user-verified): +8.0s is the GLOBAL
-# default A/V offset. The user confirmed +8.0s is PERFECT on IShowSpeed
-# (+7s left 1s of lip lag, +8s matches exactly — voice and video match,
-# captions match). File measurements show ~0s offset, but his playback
-# consistently shows ~8s of lip lag, so the default is 8.0s for every
-# video. A channel-specific entry in CHANNEL_AV_OFFSET_S still overrides
-# this default, and an explicit --av-offset flag overrides everything.
-DEFAULT_AV_OFFSET_S = 8.0
+# DEFAULT_AV_OFFSET_S (CORRECTED 2026-11-19 19:15 PKT, user order):
+# Global default is 0.0s — voice and video EQUAL by construction, no
+# offset, NO plus/minus anywhere. +8.0s was WRONG as a global default
+# (RAJA fresh clip at +8s: video AHEAD, voice DELAYED — user verdict
+# 19:12 PKT) and is NOT kept even for IShowSpeed (user order 19:15 PKT:
+# "plus minus na karo, IShowSpeed ko bhi aisa na karo"). +8s was
+# calibrated on ONE IShowSpeed video only and does not generalize.
+# If voice and video are ever not equal, the fix is to FIND THE ROOT
+# CAUSE in the pipeline (capture / cutting / extraction / encode),
+# never to add an offset. A channel-specific entry in
+# CHANNEL_AV_OFFSET_S still overrides this default, and an explicit
+# --av-offset flag overrides everything — both must stay EMPTY of
+# offsets unless a root-cause measurement proves one.
+DEFAULT_AV_OFFSET_S = 0.0
 
 # Measured by word-locked mouth activity (mouth-motion peak vs Whisper
 # word centre, 43-50 words, 4 independent measurements all ~0.42-0.43s):
@@ -250,7 +256,7 @@ CHANNEL_AV_OFFSET_S = {
 def av_offset_for(src):
     """A/V sync offset (seconds) for a source file, from the channel id
     in its filename (seg_watch?v=<id>_... or seg_<channel>__...).
-    Returns DEFAULT_AV_OFFSET_S (8.0s) when the channel has no entry in
+    Returns DEFAULT_AV_OFFSET_S (0.0s) when the channel has no entry in
     CHANNEL_AV_OFFSET_S; a channel-specific entry overrides the default.
     An explicit --av-offset flag overrides this function entirely."""
     import re as _re
