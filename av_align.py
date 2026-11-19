@@ -87,9 +87,14 @@ def channel_key_for(seg_path):
     m = re.search(r"watch\?v=([A-Za-z0-9_-]{11})", seg_path or "")
     if m:
         return m.group(1)
-    m2 = re.search(r"seg_([A-Za-z0-9_]+)__", seg_path or "")
+    # Twitch: seg_<channel>_<YYYYMMDD-HHMMSS>.mp4 (channel may end in
+    # underscore, e.g. caseoh_) — capture up to the date stamp.
+    m2 = re.search(r"seg_(.+?)_\d{8}-\d{6}", seg_path or "")
     if m2:
         return m2.group(1).lower()
+    m3 = re.search(r"seg_([A-Za-z0-9_]+)__", seg_path or "")
+    if m3:
+        return m3.group(1).lower()
     return os.path.splitext(os.path.basename(seg_path or "unknown"))[0]
 
 
